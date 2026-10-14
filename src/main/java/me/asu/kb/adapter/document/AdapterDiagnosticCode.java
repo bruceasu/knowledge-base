@@ -1,0 +1,15 @@
+package me.asu.kb.adapter.document;
+
+/** Stable diagnostic vocabulary for bounded legacy document adaptation. */
+public enum AdapterDiagnosticCode {
+  MISSING_SOURCE_SYSTEM,
+  MISSING_SOURCE_LOCATOR,
+  MISSING_DOCUMENT_TITLE,
+  SKIPPED_HEADING_LEVEL,
+  UNSUPPORTED_HEADING_SYNTAX,
+  UNCLOSED_FENCE,
+  INVALID_CHUNK_RANGE,
+  MISSING_CHUNK_CONTENT,
+  LEGACY_CHUNK_GENERATOR_UNKNOWN,
+  ARTIFACT_CLASSIFICATION_CONFLICT
+}

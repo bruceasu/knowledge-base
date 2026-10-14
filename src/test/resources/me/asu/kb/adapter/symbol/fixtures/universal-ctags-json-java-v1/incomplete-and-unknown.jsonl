@@ -1,0 +1,8 @@
+{"_type":"ptag","name":"JSON_OUTPUT_VERSION","path":"1.0","pattern":"iniconf"}
+{"_type":"tag","name":"demo","path":"./src/main/java/demo/Widget.java","language":"Java","line":1,"kind":"package","end":1}
+{"_type":"tag","name":"Widget","path":"./src/main/java/demo/Widget.java","language":"Java","line":3,"kind":"class","end":42}
+{"_type":"tag","name":"legacy","path":"./src/main/java/demo/Widget.java","language":"Java","line":30,"kind":"method","scope":"Widget","scopeKind":"class","end":31}
+{"_type":"tag","name":"singleLine","path":"./src/main/java/demo/Widget.java","language":"Java","line":34,"kind":"method","signature":"()","scope":"Widget","scopeKind":"class"}
+{"_type":"tag","name":"broken","path":"./src/main/java/demo/Widget.java","language":"Java","kind":"method","signature":"()","scope":"Widget","scopeKind":"class","end":38}
+{"_type":"tag","name":"future","path":"./src/main/java/demo/Widget.java","language":"Java","line":40,"kind":"future-kind","end":40}
+{"_type":"progress","phase":"writing"}

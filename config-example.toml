@@ -1,0 +1,35 @@
+# Required. Relative paths are resolved from this TOML file.
+workspace_root = "./service-workspace"
+
+# HTTP listener port. The default is 8080.
+port = 8080
+
+# Use "echo" for deployment smoke checks; configure a real provider for model answers.
+llm_provider = "echo"
+ollama_url = "http://localhost:11434/api/generate"
+model = "qwen3:4b"
+
+# API keys may use environment expansion, for example:
+# openai_api_key = "${OPENAI_API_KEY}"
+
+# Optional external tools. Values must be absolute paths when enabled.
+# ripgrep_executable = "C:/tools/rg.exe"
+# ctags_executable = "C:/tools/ctags.exe"
+# git_executable = "C:/Program Files/Git/bin/git.exe"
+
+# Optional virtual-project synchronization. The interval is a fixed delay from
+# one completed scheduled cycle to the next and must be between PT1M and P1D.
+# CLI equivalents: --virtual-project-sync-interval and
+# --virtual-project-sync-concurrency.
+# virtual_project_sync_interval = "PT1H"
+# virtual_project_sync_concurrency = "2"
+
+# Virtual-project path policy is workspace-only in this release:
+# - paths below workspace_root are eligible by default;
+# - external paths are denied unless a future policy configuration enables them;
+# - canonical-path checks and forbid precedence remain enforced at runtime.
+# Path-policy configuration is a startup snapshot; restart the service after
+# changing supported configuration.
+
+# The launcher does not load .env files. Environment expansion is supported in
+# TOML values, for example: openai_api_key = "${OPENAI_API_KEY}".

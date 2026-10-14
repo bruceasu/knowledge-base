@@ -1,0 +1,21 @@
+package me.asu.kb.adapter.symbol;
+
+/** Categories for invalid, incomplete, incompatible, or failed symbol extraction. */
+public enum SymbolExtractionDiagnosticCode {
+  INVALID_REQUEST,
+  UNKNOWN_WORKSPACE,
+  UNSUPPORTED_LANGUAGE,
+  INVALID_SCOPE,
+  REQUEST_LIMIT_EXCEEDED,
+  TOOL_UNAVAILABLE,
+  INCOMPATIBLE_PROFILE,
+  UNEXPECTED_EXIT,
+  TIMEOUT,
+  MALFORMED_OUTPUT,
+  ENCODING_ERROR,
+  OUTPUT_TRUNCATED,
+  RESULT_TRUNCATED,
+  UNKNOWN_KIND,
+  MISSING_REQUIRED_FIELD,
+  LOCATION_SENSITIVE_IDENTITY
+}

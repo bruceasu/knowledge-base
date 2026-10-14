@@ -1,0 +1,21 @@
+{"_type":"ptag","name":"JSON_OUTPUT_VERSION","path":"1.0","pattern":"iniconf"}
+{"_type":"tag","name":"Zeta","path":"./src/main/java/demo/Zeta.java","language":"Java","line":2,"kind":"class","end":4}
+{"_type":"tag","name":"render","path":"./src/main/java/demo/Widget.java","language":"Java","line":12,"kind":"method","signature":"(int value)","scope":"Widget","scopeKind":"class","end":14}
+{"_type":"tag","name":"Marker","path":"./src/main/java/demo/Marker.java","language":"Java","line":3,"kind":"annotation","end":4}
+{"_type":"tag","name":"demo","path":"./src/main/java/demo/Widget.java","language":"Java","line":1,"kind":"package","end":1}
+{"_type":"tag","name":"Mode","path":"./src/main/java/demo/Mode.java","language":"Java","line":3,"kind":"enum","end":6}
+{"_type":"tag","name":"Named","path":"./src/main/java/demo/Named.java","language":"Java","line":3,"kind":"interface","end":7}
+{"_type":"tag","name":"Widget","path":"./src/main/java/demo/Widget.java","language":"Java","line":3,"kind":"class","end":42}
+{"_type":"tag","name":"id","path":"./src/main/java/demo/Widget.java","language":"Java","line":4,"kind":"field","scope":"Widget","scopeKind":"class","end":4}
+{"_type":"tag","name":"render","path":"./src/main/java/demo/Widget.java","language":"Java","line":8,"kind":"method","signature":"(String value)","scope":"Widget","scopeKind":"class","end":10}
+{"_type":"tag","name":"render","path":"./src/main/java/demo/Widget.java","language":"Java","line":8,"kind":"method","signature":"(String value)","scope":"Widget","scopeKind":"class","end":10}
+{"_type":"tag","name":"render","path":"./src/main/java/demo/Widget.java","language":"Java","line":12,"kind":"method","signature":"(int value)","scope":"Widget","scopeKind":"class","end":14}
+{"_type":"tag","name":"Inner","path":"./src/main/java/demo/Widget.java","language":"Java","line":17,"kind":"class","scope":"Widget","scopeKind":"class","end":28}
+{"_type":"tag","name":"id","path":"./src/main/java/demo/Widget.java","language":"Java","line":18,"kind":"field","scope":"Widget.Inner","scopeKind":"class","end":18}
+{"_type":"tag","name":"Snapshot","path":"./src/main/java/demo/Snapshot.java","language":"Java","line":3,"kind":"record","end":5}
+{"_type":"tag","name":"FAST","path":"./src/main/java/demo/Mode.java","language":"Java","line":4,"kind":"enumConstant","scope":"Mode","scopeKind":"enum","end":4}
+{"_type":"tag","name":"demo","path":"./src/main/java/demo/Zeta.java","language":"Java","line":1,"kind":"package","end":1}
+{"_type":"tag","name":"demo","path":"./src/main/java/demo/Named.java","language":"Java","line":1,"kind":"package","end":1}
+{"_type":"tag","name":"demo","path":"./src/main/java/demo/Marker.java","language":"Java","line":1,"kind":"package","end":1}
+{"_type":"tag","name":"demo","path":"./src/main/java/demo/Mode.java","language":"Java","line":1,"kind":"package","end":1}
+{"_type":"tag","name":"demo","path":"./src/main/java/demo/Snapshot.java","language":"Java","line":1,"kind":"package","end":1}

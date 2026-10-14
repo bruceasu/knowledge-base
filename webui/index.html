@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>asu-libaray · 本地知识库</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body class="sidebar-collapsed">
+  <div class="backdrop" aria-hidden="true"></div>
+  <header class="topbar app-header">
+    <a class="brand" href="./index.html" aria-label="asu-libaray 使用页"><span class="eyebrow">Local knowledge base</span><strong>asu-libaray</strong></a>
+    <div class="topbar-tools">
+      <a class="ghost link-button" href="./manage.html">管理区</a><button id="panelToggle" class="ghost" type="button">打开边栏</button>
+      <div class="service-pill" aria-live="polite"><span id="healthDot" class="status-dot"></span><div><span class="service-label">服务</span><strong id="healthText" class="service-text">正在检查…</strong></div></div>
+    </div>
+  </header>
+  <main class="layout">
+    <aside id="sidebar" class="sidebar" aria-label="会话与偏好">
+      <section class="card sidebar-section"><div class="card-head"><div><span class="section-kicker">Context</span><h2>会话</h2></div><div class="card-actions"><button id="newSessionBtn" class="ghost icon-btn" type="button" title="新建会话" aria-label="新建会话">+</button><button id="renameSessionBtn" class="ghost icon-btn" type="button" title="重命名会话" aria-label="重命名会话">✎</button><button id="deleteSessionBtn" class="ghost danger icon-btn" type="button" title="删除会话" aria-label="删除会话">×</button></div></div><div id="sessionList" class="session-list" aria-label="会话列表"></div><div class="session-tools"><button id="sessionExportBtn" class="ghost" type="button">导出 JSON</button><label class="file-button"><input id="sessionImportInput" type="file" accept="application/json" /><span>导入 JSON</span></label></div></section>
+      <section class="card sidebar-section"><div class="card-head"><div><span class="section-kicker">Preference</span><h2>视图</h2></div></div><label class="switch-row"><input id="sidebarRememberOpen" type="checkbox" /><span>始终展开会话边栏</span></label><p class="hint">会话视图和偏好保存在浏览器本地；服务器保留会话内容。</p></section>
+    </aside>
+    <section class="workspace" aria-label="知识库检索与问答">
+      <section class="hero-card card workspace-card"><div class="card-head workspace-head"><div><span class="section-kicker">Explore</span><h1>从本地资料开始</h1><p class="lede">检索当前服务中的原始内容，或基于检索结果继续提问。</p></div><div id="modeSwitch" class="mode-switch" role="tablist" aria-label="模式"><button id="searchModeBtn" class="mode-btn active" type="button">检索</button><button id="askModeBtn" class="mode-btn" type="button">问答</button></div></div><form id="workspaceForm" class="workspace-form"><label class="field"><span id="promptLabel">检索词</span><textarea id="promptInput" rows="5" placeholder="例如：Lucene 如何支持本地检索？"></textarea></label><div class="mode-panels"><div data-mode-panel="search"><label class="field inline-field"><span>结果数量</span><input id="limitInput" type="number" min="1" value="10" /></label></div><div data-mode-panel="ask" hidden><label class="field inline-field"><span>引用片段数</span><input id="topKInput" type="number" min="1" value="5" /></label></div></div><div class="row"><button id="primaryActionBtn" type="submit">开始检索</button><button id="clearThreadBtn" class="ghost" type="button">清空当前视图</button></div></form></section>
+      <section class="card timeline-card"><div class="card-head"><div><span class="section-kicker">Reading trail</span><h2>结果与对话</h2></div><div id="threadSummary" class="meta-line">0 条记录</div></div><div id="thread" class="thread" aria-live="polite"></div></section>
+    </section>
+    <aside id="statusRail" class="status-rail" aria-label="状态与活动">
+      <section class="card"><div class="card-head"><div><span class="section-kicker">Now</span><h2>当前状态</h2></div><button id="refreshHealthBtn" class="ghost" type="button">刷新</button></div><div class="status-grid"><div><span class="meta-label">服务</span><strong id="healthDetail" class="meta-value">正在检查…</strong></div><div><span class="meta-label">模式</span><strong id="modeDetail" class="meta-value">检索</strong></div><div><span class="meta-label">会话</span><strong id="sessionDetail" class="meta-value">—</strong></div><div><span class="meta-label">消息</span><strong id="messageCountDetail" class="meta-value">0</strong></div></div></section>
+      <section class="card"><div class="card-head"><div><span class="section-kicker">Workspace</span><h2>上下文</h2></div></div><div class="info-stack"><div><span class="meta-label">存储</span><strong id="storageDetail" class="meta-value">localStorage</strong></div><div><span class="meta-label">边栏</span><strong id="sidebarDetail" class="meta-value">默认收起</strong></div></div></section>
+      <section class="card"><div class="card-head"><div><span class="section-kicker">Activity</span><h2>活动</h2></div><button id="clearActivityBtn" class="ghost" type="button">清除</button></div><div id="activityFeed" class="activity-feed"></div></section>
+    </aside>
+  </main>
+  <div class="new-article-floating"><button id="newArticleBtn" class="ghost" type="button">New Article</button><button id="trashBtn" class="ghost" type="button">Trash</button></div>
+  <script src="./app.js"></script>
+</body>
+</html>

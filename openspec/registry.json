@@ -1,0 +1,16 @@
+{
+  "changes": [
+    {
+      "id": "article-editor-revisions",
+      "status": "DOING",
+      "branch": "master",
+      "worktree": ".",
+      "workspace_kind": "primary",
+      "delivery": "unmanaged",
+      "path": "openspec/changes/article-editor-revisions",
+      "updated_at": "2026-08-28"
+    }
+  ],
+  "updated": "2026-08-28T23:14:23+09:00",
+  "version": "1"
+}

@@ -1,0 +1,3 @@
+{"_type":"tag","name":"demo","path":"./src/main/java/demo/Widget.java","language":"Java","line":1,"kind":"package","end":1}
+{"_type":"tag","name":"Widget","path":"./src/main/java/demo/Widget.java","language":"Java","line":13,"kind":"class","end":52}
+{"_type":"tag","name":"render","path":"./src/main/java/demo/Widget.java","language":"Java","line":18,"kind":"method","signature":"(String value)","scope":"Widget","scopeKind":"class","end":20}

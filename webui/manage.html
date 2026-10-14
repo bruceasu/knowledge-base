@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><title>asu-libaray · 管理区</title><link rel="stylesheet" href="./styles.css" /></head>
+<body class="manage-body"><div class="backdrop" aria-hidden="true"></div>
+  <main class="manage-page">
+    <header class="topbar app-header"><a class="brand" href="./index.html"><span class="eyebrow">Local knowledge base</span><strong>管理区</strong></a><div class="topbar-tools"><a class="ghost link-button" href="./index.html">返回使用页</a><button id="refreshBtn" class="ghost" type="button">刷新全部状态</button></div></header>
+    <section class="manage-intro"><span class="section-kicker">Operations</span><h1>让维护工作有据可循</h1><p>在此查看单工作区服务的运行状态，管理内容来源和索引。所有操作都通过本机 HTTP 服务执行。</p><p id="feedback" class="feedback hint" aria-live="polite"></p></section>
+    <section class="management-grid">
+      <section class="card status-overview"><div class="card-head"><div><span class="section-kicker">System</span><h2>服务概览</h2></div><strong id="serverState" class="state-pill">加载中…</strong></div><p class="hint">状态来自当前服务实例；所有维护操作均作用于其唯一工作区。</p><div id="serviceStatus" class="status-grid" aria-live="polite"></div></section>
+      <section class="card document-card"><div class="card-head"><div><span class="section-kicker">Metadata</span><h2>文档元数据</h2></div><button id="refreshDocumentsBtn" class="ghost" type="button">刷新文档</button></div><label class="field"><span>当前文档</span><select id="documentSelect" aria-label="要查看和编辑的文档"></select></label><div id="documentMetadata" class="metadata-panel" aria-live="polite"></div><form id="metadataForm" class="workspace-form"><label class="field"><span>手工标题</span><input id="metadataTitleInput" /></label><label class="field"><span>手工标签（逗号分隔）</span><input id="metadataTagsInput" /></label><label class="field"><span>手工关键词（逗号分隔）</span><input id="metadataKeywordsInput" /></label><label class="field"><span>手工摘要</span><textarea id="metadataSummaryInput" rows="4"></textarea></label><div class="row"><button type="submit">保存手工元数据</button></div></form></section>
+      <section class="card"><div class="card-head"><div><span class="section-kicker">Content</span><h2>导入内容</h2></div></div><label class="field"><span>服务器本地文件路径</span><input id="filePathInput" placeholder="例如：D:\\notes\\guide.md" /></label><div class="row"><button id="ingestFileBtn" class="ghost" type="button">导入该文件</button></div><p class="hint">路径导入读取运行服务的机器上的文件；浏览器上传不属于当前 v2 契约。</p></section>
+      <section class="card"><div class="card-head"><div><span class="section-kicker">Sources</span><h2>同步目录</h2></div></div><label class="field"><span>服务器本地目录路径</span><input id="rootInput" placeholder="例如：D:\\notes" /></label><div class="row"><button id="syncBtn" type="button">同步此目录</button><button id="rebuildBtn" class="ghost" type="button">重建索引</button></div><p class="hint">同步会增量更新内容；重建索引用于修复或重新投影现有数据。</p></section>
+      <section class="card roots-card"><div class="card-head"><div><span class="section-kicker">Roots</span><h2>已同步目录</h2></div><button id="refreshRootsBtn" class="ghost" type="button">刷新目录</button></div><div id="rootList" class="root-list" aria-live="polite"></div><p class="hint">“解除关联”保留历史数据；“清理”会请求服务端删除关联数据，需要再次确认。</p></section>
+    </section>
+  </main>
+  <script src="./manage.js"></script>
+</body>
+</html>
