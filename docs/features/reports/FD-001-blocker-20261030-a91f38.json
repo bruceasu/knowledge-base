@@ -1,0 +1,22 @@
+{
+  "fd_id": "FD-001",
+  "evidence_kind": "blocker",
+  "markdown": "FD-001-blocker-20261030-a91f38.md",
+  "source_event": "FD-001-000002-design-requested",
+  "session": "kb-fd001-planner-20261030-a91f38",
+  "stage": "Design",
+  "role": "planner",
+  "status": "resolved",
+  "observed_at": "2026-10-30T01:25:00+09:00",
+  "symptom": "首版 ZIP 展开预算和 PDF/DOCX 解析依赖方案尚未确认。",
+  "cause": "现有 100 MB 决策仅针对上传文件；新增解析依赖需要用户授权。",
+  "attempts": [
+    {"action": "读取整合方案、API 契约及当前 pom.xml", "outcome": "确认边界与待定项"},
+    {"action": "异步提出 ZIP 预算与解析依赖具体选项", "outcome": "等待用户答复"}
+  ],
+  "human_decision_needed": false,
+  "next_step": "答复后更新 FD 和记录，补齐持久化设计并继续自动流程。",
+  "risk": "直接实施会擅自决定资源预算或首版格式范围。",
+  "reusable_improvement": "FD 初始化同时提供 blocker Markdown/JSON 模板。",
+  "resolution": {"date": "2026-10-30", "evidence": "用户答复 confirm，确认 ZIP 预算及新增 PDF/DOCX 解析依赖。"}
+}
