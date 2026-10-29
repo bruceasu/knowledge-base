@@ -3,5 +3,7 @@
 <!-- aiw: feature-folder-index -->
 
 - [Design: FD-001_PERSONAL_KNOWLEDGE_SERVICE_AND_SECRETARY_INTEGRA.md](FD-001_PERSONAL_KNOWLEDGE_SERVICE_AND_SECRETARY_INTEGRA.md)
+- [Reports](reports/)
+- [Reviews](reviews/)
 
 Run `aiw fd show FD-001` for current status and handoff.

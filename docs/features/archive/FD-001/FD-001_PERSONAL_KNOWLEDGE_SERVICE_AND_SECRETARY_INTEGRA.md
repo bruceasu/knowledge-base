@@ -117,7 +117,7 @@ MCP 移除安排在 HTTP 替代能力完成之后；删除显式启动入口、�
 - 已确认：父分支 main；此前仅两份方案文件未跟踪；无配置 AIW_FD_ROLE_RUNNER。CLI 生成的 FD 位于 `docs/features/FD-001/`，使用其实际路径，不手工迁移。
 - 实施前：解决上面的 Gate，完成 1.2 schema 设计，精确提交方案及 FD；通过 `aiw git wt add FD-001` 隔离实现并核对 workspace.json。
 - 实施后：每项静态追踪调用链和边界；最终只做一轮集中静态校验。按仓库授权选择 compile-only 命令，不运行测试、最终构建、网络下载或部署。编译若需下载则记录阻塞，不绕过离线限制。
-- 独立 Reviewer 检查全部验收项和真实 diff，最多三个 Reviewer 结果；当前审查次数为 2；r1 changes-requested 的三项已修复，r2 verification-passed，见 ../reviews/FD-001-review-r2.md。
+- 独立 Reviewer 检查全部验收项和真实 diff，最多三个 Reviewer 结果；当前审查次数为 2；r1 changes-requested 的三项已修复，r2 verification-passed，见 reviews/FD-001-review-r2.md。
 - 已由 Worker 运行 Java 17 compile-only（最终 291 源文件，7.913 秒）；Reviewer 未重跑。未运行：测试、真实样本解析、并发/崩溃恢复、代理故障及外部直连验证。它们不是已通过的证据；远程上线前必须完成对应运行验收。
 
 ## TODO
@@ -125,7 +125,7 @@ MCP 移除安排在 HTTP 替代能力完成之后；删除显式启动入口、�
 - [x] 通过 CLI 分配 FD-001 并领取 Planner 事件。
 - [x] 记录方案、兼容性、安全边界、工作拆分和验收。
 - [x] 解决设计 Gate，补齐持久化设计后发出 design-ready。
-- [ ] 自动实施已开始；独立审查、本地 squash 合并和归档尚未完成。
+- [x] 自动实施、两轮独立审查、本地 squash 合并、工作区清理和 Complete 归档已完成。
 
 Planner session：`kb-fd001-planner-20261030-a91f38`。
 来源事件：`FD-001-000002-design-requested`。
@@ -153,7 +153,7 @@ Worker session：`kb-fd001-worker-20261030-c73b12`；来源事件 `FD-001-000003
 - 3.1a 已编写 additive schema、VACUUM INTO 备份、迁移回滚和 serviceId/游标密钥初始化，启动接线已加入；未编译验证，旧文档映射和后续操作服务仍待实现，3.1 未完成。
 - 5.4a/5.5a/5.6a 已编写可独立接入的 ZIP 预算预检和 PDF/DOCX 文本提取适配器；尚未接入持久队列、未编译验证，不标记父工作项完成。
 - 锁定解析依赖：PDFBox 3.0.8、POI OOXML 6.0.0；版本来自官方发布说明。新增依赖后离线编译失败，不能把之前成功编译套用于后续改动。
-- 历史 Gate：`../reports/FD-001-blocker-20261030-dependency-download.md`，现已解决。原 ZIP/依赖选型 Gate 已解决。
+- 历史 Gate：`reports/FD-001-blocker-20261030-dependency-download.md`，现已解决。原 ZIP/依赖选型 Gate 已解决。
 - 自动流程仍处于 Worker，没有 implementation-ready、Reviewer 结果、本地合并或归档。全部剩余工作项继续保留，不将部分实现描述为整体交付。
 
 ### API 应用层与路由接通
@@ -166,9 +166,9 @@ Worker session：`kb-fd001-worker-20261030-c73b12`；来源事件 `FD-001-000003
 
 ## Worker 最终交接证据
 
-第二轮交接：第一轮三个 P2 已修复，见 `../reports/FD-001-implementation-r2.md`。搜索投影完整性、明确拒绝后的草稿恢复和同字节快照读取已更新；Java 17 离线 compile 成功（291 源文件，6.154 秒）。独立复审尚待执行，测试和运行验收未执行。
+第二轮交接：第一轮三个 P2 已修复，见 `reports/FD-001-implementation-r2.md`。搜索投影完整性、明确拒绝后的草稿恢复和同字节快照读取已更新；Java 17 离线 compile 成功（291 源文件，6.154 秒）。独立复审尚待执行，测试和运行验收未执行。
 
-本次 1.1–7.3 的实现和文档切片已完成，独立 Reviewer 尚待执行。上面的增量检查点为过程历史，不再表示当前未实现。完整证据见 ../reports/FD-001-implementation-r1.md。
+本次 1.1–7.3 的实现和文档切片已完成，独立 Reviewer 尚待执行。上面的增量检查点为过程历史，不再表示当前未实现。完整证据见 reports/FD-001-implementation-r1.md。
 
 - 新增 serviceId/凭证/代理边界、五类秘书 API、持久幂等笔记、上传/导入队列、首批格式与纯文本阅读已接通。
 - Caddy 和现代 Authelia v4 模板、账号存储及恢复说明已写入 deploy/personal；未实际安装或校验配置。
@@ -180,9 +180,20 @@ Worker session：`kb-fd001-worker-20261030-c73b12`；来源事件 `FD-001-000003
 
 ## Reviewer r1
 
-独立审查结论 changes-requested：搜索完整性、明确拒绝后的笔记编辑恢复、正文与哈希同快照三项需要修复。报告：../reviews/FD-001-review-r1.md。来源事件 FD-001-000004-implementation-ready；Reviewer session kb-fd001-reviewer-20261030-7e42a1。未运行测试、编译或部署；本地合并与归档尚未完成。
+独立审查结论 changes-requested：搜索完整性、明确拒绝后的笔记编辑恢复、正文与哈希同快照三项需要修复。报告：reviews/FD-001-review-r1.md。来源事件 FD-001-000004-implementation-ready；Reviewer session kb-fd001-reviewer-20261030-7e42a1。未运行测试、编译或部署；本地合并与归档尚未完成。
 
 
 ## Reviewer r2
 
-独立复审 verification-passed。审查提交 6d3d51f，来源事件 FD-001-000006-implementation-ready；Reviewer session kb-fd001-reviewer-20261030-7e42a1。r1 三个 P2 均已解决，未发现新的阻断问题。报告：../reviews/FD-001-review-r2.md。实际编译以 Worker r2 的 291 源文件、6.154 秒为最新证据；测试、真实远程/解析/恢复验收未运行。本地交付与归档仍由 PM 继续，不提前标记 TODO 完成。
+独立复审 verification-passed。审查提交 6d3d51f，来源事件 FD-001-000006-implementation-ready；Reviewer session kb-fd001-reviewer-20261030-7e42a1。r1 三个 P2 均已解决，未发现新的阻断问题。报告：reviews/FD-001-review-r2.md。实际编译以 Worker r2 的 291 源文件、6.154 秒为最新证据；测试、真实远程/解析/恢复验收未运行。本地交付与归档仍由 PM 继续，不提前标记 TODO 完成。
+
+**Completed:** 2026-10-29
+
+## 本地交付记录
+
+- 2026-10-30：第 2 轮独立静态审查通过，实际事件 FD-001-000007-verification-passed；交付前已核对 FD SHA-256 与回执一致。
+- `aiw git wt local-merge FD-001` 成功，main 提交 `f0644b6`，FD-Source 为 `3950c648e8851a94ae00634dd3e8e26c17bb5dfc`；受管理流程已删除 feature/FD-001 与其 worktree，保留回执。
+- `aiw fd close FD-001 Complete` 成功，将设计与证据归档至本目录。以上历史检查点中的待实施、待审查、待交付仅代表当时状态。
+- PM handoff 不接受 agent claim，CLI 曾明确拒绝；按正常 PM 本地交付/close 路径完成，没有改写回执或绕过 review。
+- 两组 blocker 均已解决，见 reports 中对应 Markdown/JSON；建议将依赖选型与下载需求一起询问，模板补全另案处理。
+- 最新编译为 Java 17 `mvn -o -B -ntp -DskipTests compile`，291 源文件、6.154 秒成功。未运行测试、最终构建、浏览器/代理/跨机/恢复验收，未推送或部署；静态通过不代表可以直接上线。
