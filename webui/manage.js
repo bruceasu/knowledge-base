@@ -19,7 +19,9 @@ const $ = (id) => document.getElementById(id);
 const escapeHtml = (value) => String(value ?? "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#39;");
 
 async function requestJson(url, options = {}) {
-  const response = await fetch(url, options);
+  const requestHeaders = new Headers(options.headers || {});
+  if (!["GET", "HEAD", "OPTIONS"].includes((options.method || "GET").toUpperCase())) requestHeaders.set("X-KB-CSRF", "1");
+  const response = await fetch(url, { ...options, headers: requestHeaders });
   const text = await response.text();
   let body = {};
   try { body = text ? JSON.parse(text) : {}; } catch { throw new Error(text || response.statusText); }

@@ -4,6 +4,15 @@ workspace_root = "./service-workspace"
 # HTTP listener port. The default is 8080.
 port = 8080
 
+# Personal collection UI and secretary API; HTTPS is terminated by same-host Caddy.
+http_bind_host = "127.0.0.1"
+personal_knowledge_enabled = "false"
+# Enable only with the real proxy and credential configuration (deploy/personal/).
+# public_base_url = "https://knowledge.example.com"
+# secretary_credentials_file = "C:/private/knowledge/credentials.json"
+# trusted_proxy_secret_file = "C:/private/knowledge/proxy-secret.txt"
+personal_storage_quota_bytes = "0"
+
 # Use "echo" for deployment smoke checks; configure a real provider for model answers.
 llm_provider = "echo"
 ollama_url = "http://localhost:11434/api/generate"

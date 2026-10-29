@@ -52,6 +52,46 @@ public final class KnowledgeBase implements AutoCloseable {
   private final SummaryService summaryService;
   private final LlmClient llmClient;
   private final EmbeddingClient embeddingClient;
+  private PersonalCatalog personalCatalog;
+  private PersonalKnowledgeService personalService;
+
+  /** Initialize additive state before the composition begins accepting requests. */
+  public void initializePersonalCatalog() throws Exception {
+    if (personalCatalog != null) return;
+    Path backupDirectory = workspaceDir.resolve(".kb").resolve("migration-backups");
+    Files.createDirectories(backupDirectory);
+    personalCatalog = repository.initializePersonalCatalog(backupDirectory.resolve(
+        "before-personal-v1-" + java.util.UUID.randomUUID() + ".sqlite"));
+  }
+
+  public Optional<String> personalServiceId() {
+    return personalCatalog == null ? Optional.empty() : Optional.of(personalCatalog.serviceId());
+  }
+
+  public void initializePersonalService(me.asu.kb.runtime.PersonalKnowledgeSettings settings) throws Exception {
+    initializePersonalCatalog();
+    personalService = new PersonalKnowledgeService(this, repository, personalCatalog, index, workspaceDir, settings);
+  }
+
+  public me.asu.kb.runtime.PersonalKnowledgeApplication personalApplication() {
+    if (personalService == null) throw new me.asu.kb.runtime.PersonalKnowledgeApplication.Failure(503, "UNAVAILABLE");
+    return personalService;
+  }
+
+  /** Uses deterministic managed paths and avoids implicit LLM/network calls on personal imports. */
+  long ingestPersonal(Path path, String title) throws Exception {
+    String root = path.getParent().toAbsolutePath().toString();
+    repository.activateRoot(root);
+    String content = Files.readString(path, StandardCharsets.UTF_8);
+    String contentHash = sha256(content.getBytes(StandardCharsets.UTF_8));
+    var existing = repository.findDocumentByPath(path.toAbsolutePath().toString());
+    if (existing.isEmpty() || !existing.get().hash().equals(contentHash)) {
+      ingestFile(root, path, content, contentHash, title, nextRevision(existing.orElse(null), contentHash, content), false);
+    } else {
+      reprojectDocument(existing.get().id());
+    }
+    return repository.findDocumentByPath(path.toAbsolutePath().toString()).orElseThrow().id();
+  }
 
   public KnowledgeBase(Path workspaceDir, LlmClient llmClient) throws Exception {
     this(workspaceDir, llmClient, EmbeddingClient.disabled());
@@ -316,6 +356,7 @@ public final class KnowledgeBase implements AutoCloseable {
         .orElseThrow(() -> new SQLException("Document not found: " + documentId));
     Article article = repository.findArticleById(documentId)
         .orElseThrow(() -> new SQLException("Article not found: " + documentId));
+    if (personalService != null) personalService.markDeleted(documentId, document.path());
     Path source = Path.of(document.path());
     Path history = workspaceDir.resolve(".kb").resolve("history").resolve(Long.toString(documentId));
     Instant deletedAt = Instant.now();
@@ -408,6 +449,7 @@ public final class KnowledgeBase implements AutoCloseable {
     repository.insertArticleRevision(article.id(), revision);
     ingestFile(target.getParent().toString(), target, content, hash, target.getFileName().toString());
     repository.recordEvent("trash_restored", documentId, "newRevision=" + revisionNumber, Instant.now());
+    if (personalService != null) personalService.markRestored(documentId);
     return document(documentId);
   }
 
@@ -468,6 +510,19 @@ public final class KnowledgeBase implements AutoCloseable {
       }
     }
     reprojectDocument(documentId);
+  }
+
+  void personalMetadata(long documentId, String title, List<String> tags) throws Exception {
+    repository.inTransaction(() -> {
+      repository.deleteDocumentMetadataBySource(documentId, "manual");
+      repository.deleteTagsBySource(documentId, "manual");
+      repository.upsertDocumentMetadata(documentId, "title", title, "manual", null);
+      for (String tag : tags) repository.upsertDocumentTag(documentId, tag, "manual");
+      Article article = repository.findArticleById(documentId).orElseThrow();
+      repository.updateArticleProjectionStatus(article.id(), new ProjectionStatus(
+          ProjectionState.PENDING, article.currentRevision().revisionNumber(), Optional.empty(), Instant.now()));
+      return null;
+    });
   }
 
   public void reprojectDocument(long documentId) throws Exception {
@@ -746,14 +801,18 @@ public final class KnowledgeBase implements AutoCloseable {
   private void ingestFile(String rootPath, Path path, String text, String hash, String displayName,
       Optional<ArticleRevision> newRevision)
       throws Exception {
+    ingestFile(rootPath, path, text, hash, displayName, newRevision, true);
+  }
+
+  private void ingestFile(String rootPath, Path path, String text, String hash, String displayName,
+      Optional<ArticleRevision> newRevision, boolean generateMetadata) throws Exception {
     String fileType = fileType(displayName != null ? displayName : path.getFileName().toString());
     String normalizedPath = path.toAbsolutePath().normalize().toString();
     String displayTitle = displayName != null ? displayName : path.getFileName().toString();
     // LLM calls and chunking are intentionally outside the SQLite transaction.
-    String summary = summaryService.summarizeDocument(
-        displayTitle, text);
+    String summary = generateMetadata ? summaryService.summarizeDocument(displayTitle, text) : "";
     List<Chunk> chunks = chunker.split(text, chunkFormatFor(fileType));
-    Optional<LlmMetadataService.AiMetadata> aiMetadata = llmMetadataService.generate(displayTitle, text);
+    Optional<LlmMetadataService.AiMetadata> aiMetadata = generateMetadata ? llmMetadataService.generate(displayTitle, text) : Optional.empty();
     IngestCommit committed = repository.inTransaction(() -> {
       long documentId = repository.upsertDocument(rootPath, normalizedPath, fileType, StandardCharsets.UTF_8.name(), hash);
       if (newRevision.isPresent()) {
@@ -783,7 +842,7 @@ public final class KnowledgeBase implements AutoCloseable {
           batchId, businessCheckpoint, checkpointValue(), List.of(normalizedPath)), embeddings);
     });
     for (ChunkEmbedding embedding : committed.embeddings()) {
-      maybeStoreEmbedding(embedding.chunkId(), embedding.content());
+      if (generateMetadata) maybeStoreEmbedding(embedding.chunkId(), embedding.content());
     }
     projectBatch(committed.batch());
   }
@@ -964,7 +1023,7 @@ public final class KnowledgeBase implements AutoCloseable {
     return decode(Files.readAllBytes(path));
   }
 
-  private String decode(byte[] bytes) {
+  String decode(byte[] bytes) {
 
     // UTF-8 BOM: EF BB BF
     if (bytes.length >= 3
@@ -1182,6 +1241,7 @@ public final class KnowledgeBase implements AutoCloseable {
 
   @Override
   public void close() throws Exception {
+    if (personalService != null) personalService.close();
     index.close();
     repository.close();
   }

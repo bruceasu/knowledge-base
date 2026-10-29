@@ -4,6 +4,8 @@ import java.util.Map;
 
 /** Transport-independent boundary for the fresh-layout document and session module. */
 public interface SingleWorkspaceDocumentApplication extends AutoCloseable {
+  default java.util.Optional<String> personalServiceId() { return java.util.Optional.empty(); }
+  default PersonalKnowledgeApplication personal() { throw new PersonalKnowledgeApplication.Failure(503, "UNAVAILABLE"); }
   Object execute(Operation operation, Map<String, Object> arguments) throws Exception;
 
   enum Operation {

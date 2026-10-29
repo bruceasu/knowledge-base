@@ -121,6 +121,11 @@ final class LuceneSearchIndex implements Closeable {
 
   List<SearchHit> search(String queryText, int limit, String pathPrefix, List<String> tagFilters)
       throws Exception {
+    return search(queryText, limit, pathPrefix, tagFilters, null);
+  }
+
+  List<SearchHit> search(String queryText, int limit, String pathPrefix, List<String> tagFilters,
+      java.util.Set<Long> allowedDocuments) throws Exception {
     DirectoryReader reader = acquireCommittedReader();
     if (reader == null) {
       return List.of();
@@ -129,6 +134,13 @@ final class LuceneSearchIndex implements Closeable {
       searchHook.afterReaderAcquired();
       IndexSearcher searcher = new IndexSearcher(reader);
       Query query = buildQuery(queryText, pathPrefix, tagFilters);
+      if (allowedDocuments != null) {
+        var terms = allowedDocuments.stream().map(id -> new org.apache.lucene.util.BytesRef(id.toString())).toList();
+        query = new org.apache.lucene.search.BooleanQuery.Builder()
+            .add(query, org.apache.lucene.search.BooleanClause.Occur.MUST)
+            .add(new org.apache.lucene.search.TermInSetQuery("document_id", terms), org.apache.lucene.search.BooleanClause.Occur.FILTER)
+            .build();
+      }
       TopDocs topDocs = searcher.search(query, limit);
       List<SearchHit> hits = new ArrayList<>();
       for (ScoreDoc scoreDoc : topDocs.scoreDocs) {

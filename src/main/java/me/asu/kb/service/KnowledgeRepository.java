@@ -21,6 +21,13 @@ public final class KnowledgeRepository implements Closeable {
   private final Connection connection;
   private final String jdbcUrl;
   private final ThreadLocal<Connection> activeReadConnection = new ThreadLocal<>();
+  private PersonalCatalog personalCatalog;
+
+  /** Called before transport admission, never from an HTTP handler. */
+  PersonalCatalog initializePersonalCatalog(Path backupFile) throws SQLException {
+    if (personalCatalog == null) personalCatalog = new PersonalCatalog(connection, backupFile);
+    return personalCatalog;
+  }
 
   @FunctionalInterface
   interface Transaction<T> {

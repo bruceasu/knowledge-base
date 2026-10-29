@@ -12,7 +12,9 @@ public final class SingleWorkspaceHttpServerMain {
     SingleWorkspaceKnowledgeService composition = SingleWorkspaceLauncher.open(configuration);
     SingleWorkspaceHttpApp app = null;
     try {
-      app = new SingleWorkspaceHttpApp(composition, configuration.httpPort());
+      app = new SingleWorkspaceHttpApp(composition, configuration.httpPort(),
+          configuration.personalKnowledge().bindHost());
+      app.configurePersonalAccess(configuration.personalKnowledge());
       app.start();
       SingleWorkspaceHttpApp running = app;
       Runtime.getRuntime()

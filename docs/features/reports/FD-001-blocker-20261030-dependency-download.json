@@ -1,0 +1,39 @@
+{
+    "fd_id":  "FD-001",
+    "evidence_kind":  "blocker",
+    "markdown":  "FD-001-blocker-20261030-dependency-download.md",
+    "source_event":  "FD-001-000003-design-ready",
+    "session":  "kb-fd001-worker-20261030-c73b12",
+    "stage":  "Worker",
+    "role":  "worker",
+    "status":  "resolved",
+    "observed_date":  "2026-10-30",
+    "symptom":  "新增解析依赖后 Maven 离线编译在依赖解析阶段失败。",
+    "cause":  "本机没有 PDFBox 3.0.8、POI OOXML 6.0.0，尚无 Maven 依赖下载授权。",
+    "attempts":  [
+                     {
+                         "action":  "PATH 下离线 compile",
+                         "outcome":  "mvn 不在 PATH"
+                     },
+                     {
+                         "action":  "使用明确 Java 17/Maven 路径离线 compile",
+                         "outcome":  "新增依赖之前成功，287 个源文件"
+                     },
+                     {
+                         "action":  "新增依赖后离线 compile",
+                         "outcome":  "依赖解析失败，未进入 Java 编译"
+                     },
+                     {
+                         "action":  "异步请求依赖下载及仅编译授权",
+                         "outcome":  "等待答复"
+                     }
+                 ],
+    "human_decision_needed":  false,
+    "next_step":  "授权后下载依赖、仅编译并继续未完成工作项。",
+    "risk":  "后续新增源代码未编译验证；整体实现未完成，不可部署。",
+    "reusable_improvement":  "依赖批准问题同时说明下载需求和工具路径。",
+    "resolution":  {
+                       "evidence":  "用户确认依赖下载；Java 17 联网 compile 成功，290 个源文件，15.760 秒；随后新增应用与路由分别离线编译成功。",
+                       "date":  "2026-10-30"
+                   }
+}

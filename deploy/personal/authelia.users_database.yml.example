@@ -1,0 +1,8 @@
+# Generate with the installed Authelia password hashing command; no plaintext password.
+users:
+  owner:
+    disabled: false
+    displayname: 'Owner'
+    password: 'REPLACE_WITH_ARGON2ID_HASH'
+    email: 'owner@example.com'
+    groups: []

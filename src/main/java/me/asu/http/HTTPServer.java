@@ -35,6 +35,14 @@ public class HTTPServer {
     protected final Set<String> methods = new CopyOnWriteArraySet<>();
     protected final ContextInfo rootContext = new ContextInfo("", ""); // root of context tree
     protected volatile int port = 80;
+    protected volatile String bindHost;
+    protected volatile RequestGate requestGate;
+
+    /** Header-only gate; false means it has sent the rejection response. */
+    @FunctionalInterface
+    public interface RequestGate {
+        boolean accept(Request request, Response response) throws IOException;
+    }
     protected volatile int nThreads = 256;
     protected volatile int socketTimeout = 5000;
     protected volatile ServerSocketFactory serverSocketFactory;
@@ -126,7 +134,7 @@ public class HTTPServer {
         if (serverSocketFactory == null) serverSocketFactory = ServerSocketFactory.getDefault(); // plain sockets
         serv = serverSocketFactory.createServerSocket();
         serv.setReuseAddress(true);
-        serv.bind(new InetSocketAddress(port));
+        serv.bind(bindHost == null ? new InetSocketAddress(port) : new InetSocketAddress(bindHost, port));
         if (executor == null) {
             executor = Executors.newCachedThreadPool();
         }
@@ -169,9 +177,17 @@ public class HTTPServer {
             try {
                 req = new Request(this, in, sock);
                 resp.setClientCapabilities(req);
-                if (preprocess(req, resp)) handleMethod(req, resp);
+                if (requestGate == null || requestGate.accept(req, resp)) {
+                    if (preprocess(req, resp)) {
+                        if (requestGate != null) req.initBody();
+                        handleMethod(req, resp);
+                    }
+                }
             } catch (Throwable t) { // unhandled errors (not normal error responses like 404)
-                if (req == null) { // error reading request
+                if (t instanceof Request.BodyTooLargeException && !resp.headersSent()) {
+                    resp.getHeaders().replace(CONNECTION, CLOSE);
+                    resp.sendError(413, "Request body exceeds limit");
+                } else if (req == null) { // error reading request
                     if (t instanceof IOException && t.getMessage().contains("missing request line"))
                         break; // we're not in the middle of a transaction - so just disconnect
                     resp.getHeaders().add(CONNECTION, CLOSE); // about to close connection
@@ -184,13 +200,16 @@ public class HTTPServer {
                 } else if (!resp.headersSent()) { // if headers were not already sent, we can send an error response
                     resp = new Response(out); // ignore whatever headers may have already been set
                     resp.getHeaders().add(CONNECTION, CLOSE); // about to close connection
-                    resp.sendError(500, "Error processing request: " + t.getMessage());
+                    resp.sendError(500, requestGate == null
+                            ? "Error processing request: " + t.getMessage() : "Request processing failed");
                 } // otherwise just abort the connection since we can't recover
                 break; // proceed to close connection
             } finally {
                 resp.close(); // close response and flush output
                 // consume any leftover body data so next request can be processed
-                if (req != null) transfer(req.getBody(), null, -1);
+                if (req != null && !CLOSE.equalsIgnoreCase(resp.getHeaders().get(CONNECTION))) {
+                    transfer(req.getBody(), null, -1);
+                }
                 // [RFC9112#9.3/9.6] persist connection unless client or server close explicitly (or legacy client)
                 if (req != null) req.cleanup();
             }

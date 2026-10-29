@@ -6,7 +6,7 @@
 
 - 一个进程拥有一个 `workspace_root`。
 - HTTP/WebUI 默认入口是 `me.asu.kb.http.SingleWorkspaceHttpServerMain`。
-- 本地 stdio MCP 使用显式入口 `me.asu.kb.mcp.KnowledgeMcpServerMain`。
+- MCP 显式入口已移除；使用 `/api/v2/secretary` 契约。
 - 两个入口各自打开完整 composition，不能同时指向同一个 workspace。
 - SQLite 与 Lucene 构造、生命周期和关闭由 application/runtime 层负责，不属于 transport。
 
@@ -67,20 +67,14 @@ java -jar target/knowledge-base-1.0.0-SNAPSHOT.jar --config config.toml
 
 所有业务 API 都位于 `/api/v2`。不存在 `/api/v1` alias/redirect，也不接受 workspace routing 字段或 header。
 
-## 本地 stdio MCP
+## 秘书接入与个人资料收集
 
-```bash
-java -cp target/knowledge-base-1.0.0-SNAPSHOT.jar \
-  me.asu.kb.mcp.KnowledgeMcpServerMain \
-  --config config.toml
-```
-
-MCP 只提供 `knowledge_search`、`knowledge_get`、`code_symbol`、`code_search`、`trace`、`build_context` 六个只读工具。stdout 只传输协议，诊断写 stderr；不监听 TCP/HTTP。
+MCP 入口已退役。秘书使用 HTTP API 1.0；参见 [接入契约](handoffs/personal-secretary-knowledge-handoff.md)。个人资料模式提供上传、笔记、处理进度与受保护阅读，部署方式见 deploy/personal/。
 
 ## 数据与运维边界
 
 - workspace 必须位于主机本地文件系统，且只能由一个进程打开。
-- HTTP 没有内建认证或 TLS；远程访问需要外部访问控制。
+- 后端绑定 loopback；个人资料模式使用应用鉴权和 Caddy/Authelia，不能直连公开端口。
 - 备份前正常停止服务，并复制完整 workspace，而不是只复制 SQLite。
 - 正常终止会拒绝新操作并按顺序关闭 HTTP、应用、Store 和索引。
 

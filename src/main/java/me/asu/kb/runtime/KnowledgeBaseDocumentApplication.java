@@ -25,7 +25,16 @@ public final class KnowledgeBaseDocumentApplication
   }
 
   @Override
+  public java.util.Optional<String> personalServiceId() { return knowledgeBase.personalServiceId(); }
+
+  @Override public PersonalKnowledgeApplication personal() { return knowledgeBase.personalApplication(); }
+
+  @Override
   public Object execute(Operation operation, Map<String, Object> arguments) throws Exception {
+    synchronized (knowledgeBase) { return executeLocked(operation, arguments); }
+  }
+
+  private Object executeLocked(Operation operation, Map<String, Object> arguments) throws Exception {
     Objects.requireNonNull(operation, "operation");
     Map<String, Object> values = arguments == null ? Map.of() : arguments;
     if (closed.get()) {

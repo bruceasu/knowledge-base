@@ -19,7 +19,7 @@ import me.asu.kb.llm.LlmProviderSettings;
 import me.asu.kb.llm.ModelConfig;
 import me.asu.kb.service.KnowledgeBase;
 
-/** Shared configuration and production composition entry point for HTTP and MCP launchers. */
+/** Shared configuration and production composition entry point for the HTTP launcher. */
 public final class SingleWorkspaceLauncher {
   private static final String CONFIG = "--config";
 
@@ -43,7 +43,8 @@ public final class SingleWorkspaceLauncher {
         tools,
         httpPort(values),
         virtualProjectSyncInterval(values),
-        virtualProjectSyncConcurrency(values));
+        virtualProjectSyncConcurrency(values),
+        PersonalKnowledgeSettings.parse(values));
   }
 
   public static SingleWorkspaceKnowledgeService open(Configuration configuration) throws Exception {
@@ -51,12 +52,22 @@ public final class SingleWorkspaceLauncher {
     LlmClient llm = new LlmClientFactory().create(configuration.llm());
     return SingleWorkspaceKnowledgeService.open(
         configuration.service(),
-        documentPath ->
-            new KnowledgeBaseDocumentApplication(
-                configuration.service().workspaceRoot(), new KnowledgeBase(documentPath, llm)),
+        documentPath -> openDocuments(configuration, llm, documentPath),
         configuration.tools(),
         configuration.virtualProjectSyncInterval(),
         configuration.virtualProjectSyncConcurrency());
+  }
+
+  private static SingleWorkspaceDocumentApplication openDocuments(
+      Configuration configuration, LlmClient llm, Path documentPath) throws Exception {
+    KnowledgeBase knowledgeBase = new KnowledgeBase(documentPath, llm);
+    try {
+      if (configuration.personalKnowledge().enabled()) knowledgeBase.initializePersonalService(configuration.personalKnowledge());
+      return new KnowledgeBaseDocumentApplication(configuration.service().workspaceRoot(), knowledgeBase);
+    } catch (Exception failure) {
+      try { knowledgeBase.close(); } catch (Exception closeFailure) { failure.addSuppressed(closeFailure); }
+      throw failure;
+    }
   }
 
   private static Path configFile(String[] args) {
@@ -289,7 +300,18 @@ public final class SingleWorkspaceLauncher {
       SingleWorkspaceKnowledgeService.ToolProfiles tools,
       int httpPort,
       Duration virtualProjectSyncInterval,
-      int virtualProjectSyncConcurrency) {
+      int virtualProjectSyncConcurrency,
+      PersonalKnowledgeSettings personalKnowledge) {
+    public Configuration(
+        SingleWorkspaceServiceConfig service,
+        LlmProviderSettings llm,
+        SingleWorkspaceKnowledgeService.ToolProfiles tools,
+        int httpPort,
+        Duration virtualProjectSyncInterval,
+        int virtualProjectSyncConcurrency) {
+      this(service, llm, tools, httpPort, virtualProjectSyncInterval,
+          virtualProjectSyncConcurrency, PersonalKnowledgeSettings.localOnly());
+    }
     public Configuration(
         SingleWorkspaceServiceConfig service,
         LlmProviderSettings llm,
@@ -308,6 +330,7 @@ public final class SingleWorkspaceLauncher {
       Objects.requireNonNull(service, "service");
       Objects.requireNonNull(llm, "llm");
       Objects.requireNonNull(tools, "tools");
+      Objects.requireNonNull(personalKnowledge, "personalKnowledge");
       if (httpPort < 1 || httpPort > 65_535) {
         throw new IllegalArgumentException("httpPort must be between 1 and 65535");
       }

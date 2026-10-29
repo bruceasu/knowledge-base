@@ -4,7 +4,7 @@
 
 ## 1. 一句话介绍
 
-`knowledge-base` 是一个运行在本地、面向单个工程 workspace 的知识服务：它把文档和代码相关信息转成可搜索、可追溯、可组装上下文的知识对象，并通过 WebUI、`/api/v2` 和六个只读 stdio MCP 工具提供给人和 AI 助手。
+`knowledge-base` 是一个运行在本地、面向单个工程 workspace 的知识服务：它把文档和代码相关信息转成可搜索、可追溯、可组装上下文的知识对象，并通过 WebUI、`/api/v2` 和个人秘书 HTTP API提供给人和 AI 助手。
 
 ## 2. 它解决什么问题
 
@@ -16,7 +16,7 @@
 - SQLite 保存权威业务状态，Lucene 提供可重建的搜索 projection；
 - BM25 与结构化候选组合检索；
 - 知识对象读取、关系 trace 和有 token budget 的 Context Builder；
-- WebUI 给人使用，HTTP API 给自动化使用，stdio MCP 给本地 AI agent 使用；
+- WebUI 给人使用，HTTP API 给自动化使用，秘书 HTTP API 给个人助手使用；
 - 单 workspace、单进程所有权，减少多租户路由和并发资源所有权的复杂度。
 
 ## 3. 适合与不适合的场景
@@ -32,7 +32,7 @@
 
 - 多租户 SaaS、逻辑 workspace 动态切换；
 - 多实例同时读写一个 workspace；
-- 内建认证、TLS、集群、远程 MCP；
+- 内建 TLS、集群；
 - 直接打开旧 `/api/v1` 多工作区数据；
 - 把共享网络文件系统当作 SQLite/Lucene 存储。
 
@@ -40,21 +40,21 @@
 
 ### 30 秒版本
 
-> 这是一个本地工程知识服务。它把文档和工程信息保存成带来源的知识对象，用 SQLite 保证业务状态，用 Lucene 提供搜索，再通过网页、HTTP 和本地 MCP 给人或 AI 使用。它的重点不是“再做一个聊天框”，而是让检索结果、关系和上下文有来源、有新鲜度状态，并且能在信息变化后重新同步和恢复。
+> 这是一个本地工程知识服务。它把文档和工程信息保存成带来源的知识对象，用 SQLite 保证业务状态，用 Lucene 提供搜索，再通过网页、HTTP 给人或 AI 使用。它的重点不是“再做一个聊天框”，而是让检索结果、关系和上下文有来源、有新鲜度状态，并且能在信息变化后重新同步和恢复。
 
 ### 3 分钟版本
 
 1. 一个 Java 进程拥有一个 workspace，数据不会在多个逻辑 workspace 之间路由。
 2. 用户导入文件或同步目录后，服务解析内容、metadata 和结构，提交 SQLite 业务状态，再更新搜索 projection。
 3. 搜索、对象读取、trace 和 Context Builder 使用已经提交的状态，并返回 provenance/evidence。
-4. 人可以使用 WebUI，系统可以调用 `/api/v2`，本地 AI agent 可以启动 stdio MCP。
+4. 人可以使用 WebUI，系统可以调用 `/api/v2`，个人秘书可以调用版本化 HTTP API。
 5. 当源文件变化时再次 sync：未变化文件按 hash 跳过，变化文件生成新状态和 projection，已删除文件从当前状态移除。
 6. 如果 SQLite 已更新但索引发布失败，服务不会假装完全成功；status/readiness 会暴露 projection lag，之后可显式 sync 或 rebuild。
 
 ## 5. 核心结构
 
 ```text
-WebUI / HTTP / stdio MCP
+WebUI / HTTP / 秘书 API
             │
             ▼
   单工作区应用与操作协调
@@ -66,7 +66,7 @@ WebUI / HTTP / stdio MCP
        └── 受限 ripgrep / Ctags / Git adapter
 ```
 
-HTTP/MCP transport 不直接创建 Store、索引或外部工具；这些资源由共同的 application composition 管理。
+HTTP transport 不直接创建 Store、索引或外部工具；这些资源由共同的 application composition 管理。
 
 ## 6. 用户最关心：信息更新时怎么办
 
@@ -175,9 +175,9 @@ metadata 有优先级：人工值高于源文件提取值，源文件值高于 A
 
 不能。SQLite/WAL/SHM、Lucene 和进程所有权要求主机本地文件系统，并且一个目录同时只能由一个进程打开。
 
-### Q：HTTP 和 MCP 能否同时启动？
+### Q：是否还需要 MCP？
 
-当前是两个独立入口，各自打开完整资源图。不要让两个独立进程同时指向同一 workspace。需要切换时先停止当前进程。
+不需要。MCP 入口已移除，个人秘书通过 HTTP API 接入，知识库仍由一个独立进程持有 workspace。
 
 ### Q：数据会发送到外部吗？
 
@@ -185,7 +185,7 @@ SQLite/Lucene/workspace 保存在本地。若配置远程 LLM provider，则相�
 
 ### Q：服务是否有权限管理？
 
-没有内建认证/授权。它应运行在受控主机或受控网络中；远程访问由防火墙、反向代理或其他外部访问层保护。
+个人资料模式提供秘书凭证及集合授权，浏览器使用 Caddy + Authelia，并由应用校验可信代理与写请求来源。后端只监听 loopback，实际远程部署仍需验证入口隔离。
 
 ### Q：如何知道系统是否真的更新完成？
 
@@ -208,7 +208,7 @@ SQLite/Lucene/workspace 保存在本地。若配置远程 LLM provider，则相�
 3. 修改一个文件，再次 sync，展示搜索结果更新。
 4. 在 WebUI 修改 metadata，说明人工值优先并触发 reproject。
 5. 展示知识对象来源、trace 或 Context Builder。
-6. 展示 MCP 六个工具，但强调它是本地只读 stdio。
+6. 展示秘书 API 的权限边界、引用和幂等保存。
 7. 最后说明单 workspace、安全边界、备份单位与更新失败恢复方法。
 
 ## 10. 相关文档

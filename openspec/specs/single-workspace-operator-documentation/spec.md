@@ -18,11 +18,11 @@ The operations guide MUST document the supported foreground Java process, requir
 - **THEN** the guide identifies the stable process command, probe endpoints, persistent workspace path, and security responsibilities without inventing deployment topology
 
 ### Requirement: Usage documentation covers supported surfaces
-The guide MUST explain the bundled WebUI, representative workspace-free `/api/v2` operations, and the six read-only local stdio MCP tools. It MUST identify the explicit MCP main class and MUST NOT advertise `/api/v1`, logical workspace registration/selection, or network MCP.
+The guide MUST explain the bundled WebUI, representative workspace-free `/api/v2` operations, and the versioned personal secretary HTTP API. It MUST identify the Caddy/Authelia and service-credential boundaries and MUST NOT advertise `/api/v1`, logical workspace registration/selection, or network MCP.
 
 #### Scenario: User chooses an interaction surface
 - **WHEN** a user needs browser, HTTP automation, or local agent access
-- **THEN** the guide directs them respectively to WebUI, `/api/v2`, or the explicit stdio MCP launcher with the relevant constraints
+- **THEN** the guide directs them respectively to WebUI, `/api/v2`, or the secretary HTTP contract with the relevant constraints
 
 ### Requirement: Configuration and troubleshooting match production behavior
 The guide MUST list canonical configuration keys and CLI precedence, identify obsolete workspace keys as fatal, explain important workspace data directories, and provide bounded troubleshooting steps for startup, readiness, ports, optional tools, LLM configuration, and workspace state.
@@ -32,7 +32,7 @@ The guide MUST list canonical configuration keys and CLI precedence, identify ob
 - **THEN** the guide directs the operator to exactly one `workspace_root`/`--workspace-root` and explains that CLI values override matching TOML values
 
 ### Requirement: Documentation entry points remain coherent
-The English and Chinese README files MUST link to the canonical operations material and MUST keep their minimum launch examples consistent with the supported manifest main and explicit MCP launcher. Focused topic documents MAY remain separate but MUST NOT contradict the canonical guide.
+The English and Chinese README files MUST link to the canonical operations material and MUST keep their minimum launch examples consistent with the supported HTTP manifest main. Focused topic documents MAY remain separate but MUST NOT contradict the canonical guide.
 
 #### Scenario: User enters through either README
 - **WHEN** a user starts from the English or Chinese repository landing page

@@ -49,11 +49,22 @@ public final class SingleWorkspaceHttpApp implements AutoCloseable {
   private final Supplier<ServiceReadiness> readiness;
   private final AutoCloseable composition;
   private final int port;
+  private String bindHost = "127.0.0.1";
+  private boolean personalEnabled;
   private boolean closed;
 
   public SingleWorkspaceHttpApp(SingleWorkspaceKnowledgeService composition, int port)
       throws IOException {
     this(composition, composition::readiness, composition, port);
+  }
+
+  public SingleWorkspaceHttpApp(SingleWorkspaceKnowledgeService composition, int port, String bindHost)
+      throws IOException {
+    this(composition, port);
+    if (!"127.0.0.1".equals(bindHost) && !"::1".equals(bindHost)) {
+      throw new IllegalArgumentException("HTTP backend must bind to loopback");
+    }
+    this.bindHost = bindHost;
   }
 
   SingleWorkspaceHttpApp(
@@ -73,6 +84,7 @@ public final class SingleWorkspaceHttpApp implements AutoCloseable {
   public int start() throws IOException {
     Application.AppConfig config = new Application.AppConfig();
     config.setPort(port);
+    server.getHttpServer().setBindHost(bindHost);
     return server.run(config);
   }
 
@@ -167,11 +179,20 @@ public final class SingleWorkspaceHttpApp implements AutoCloseable {
     addDocumentRoute("/api/v2/maintenance/events", SingleWorkspaceDocumentApplication.Operation.RECENT_EVENTS, "GET");
   }
 
+  public void configurePersonalAccess(me.asu.kb.runtime.PersonalKnowledgeSettings settings)
+      throws IOException {
+    if (settings.enabled()) {
+      server.getHttpServer().setRequestGate(new PersonalAccessGate(settings));
+      new PersonalHttpRoutes(server, application).register();
+      personalEnabled = true;
+    }
+  }
+
   private int root(Request request, Response response) throws IOException {
     if (!"/".equals(request.getPath())) {
       return 404;
     }
-    response.getHeaders().add("Location", request.getBaseURL() + "/webui/index.html");
+    response.getHeaders().add("Location", personalEnabled ? "/webui/personal.html" : "/webui/index.html");
     response.send(302, "Temporarily moved to the WebUI.");
     return 0;
   }

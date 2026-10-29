@@ -7,10 +7,10 @@
 ## 1. 支持范围
 
 - HTTP API 只位于 `/api/v2`；WebUI 随 jar 打包。
-- MCP 只支持本机父进程启动的 stdio transport，不监听网络端口。
-- 同一个 workspace 不能被多个 HTTP/MCP 进程同时打开。
+- MCP 已退役，秘书采用独立凭证接入 HTTP。
+- 同一个 workspace 不能被多个 知识库服务进程同时打开。
 - SQLite、WAL/SHM 和 Lucene 索引必须位于主机本地文件系统。
-- 当前没有内建认证、TLS、集群、远程 MCP 或官方容器镜像。
+- 个人资料模式支持服务凭证和可信代理认证；TLS 由 Caddy 终止，不提供集群或官方容器镜像。
 
 ## 2. 环境要求
 
@@ -258,30 +258,11 @@ curl -G http://127.0.0.1:8080/api/v2/knowledge/search \
   --data-urlencode 'limit=10'
 ```
 
-省略该参数时保持原有 shared-only 搜索；提供有效项目 ID 时合并共享知识和该项目索引，并对项目结果应用确定性偏好。HTTP/MCP 结果保留 scope、项目 ID、来源路径/位置、新鲜度和有界部分源诊断。MCP 的 `knowledge_search` 也可附加 `virtualProjectId`；未知或格式错误的 ID 会在检索前返回经过清理的错误，MCP 仍为本地 stdio 只读接口。
+省略该参数时保持原有 shared-only 搜索；提供有效项目 ID 时合并共享知识和该项目索引，并对项目结果应用确定性偏好。HTTP 结果保留 scope、项目 ID、来源位置、新鲜度和有界诊断。
 
-## 8. 本地 stdio MCP
+## 秘书接入与个人资料收集
 
-客户端必须把 MCP 作为本地子进程启动：
-
-```bash
-java -cp target/knowledge-base-1.0.0-SNAPSHOT.jar \
-  me.asu.kb.mcp.KnowledgeMcpServerMain \
-  --config config.toml
-```
-
-六个只读工具：
-
-| 工具 | 用途 |
-| --- | --- |
-| `knowledge_search` | 搜索带来源、freshness、provenance 和 evidence 的工程知识，可选虚拟项目范围 |
-| `knowledge_get` | 按稳定对象 ID 读取单个知识对象 |
-| `code_symbol` | 查找类、方法等代码符号 |
-| `code_search` | 在受限相对路径范围内搜索字面代码文本 |
-| `trace` | 查询固定范围内且有 evidence 的关系 |
-| `build_context` | 按 `UNDERSTAND`、`CHANGE`、`REVIEW`、`DIAGNOSE` 或 `TEST` 意图组装有 token budget 的上下文 |
-
-工具描述会随 MCP `tools/list` 返回；非 OK 结果使用 `status` 和安全诊断 code/detail 指导修正参数、检查 ready、缩小范围或重试。stdout 只用于协议，诊断写 stderr。MCP 不提供网络 listener；不要让 HTTP 与 MCP 进程同时打开同一 workspace。
+MCP 入口已退役。秘书使用 HTTP API 1.0；参见 [接入契约](handoffs/personal-secretary-knowledge-handoff.md)。个人资料模式提供上传、笔记、处理进度与受保护阅读，部署方式见 deploy/personal/。
 
 ## 9. 日常运维
 
@@ -304,7 +285,7 @@ SQLite 是业务状态权威，Lucene 可重建。维护清理使用 `POST /api/
 
 ### 备份
 
-1. 正常停止服务，确认没有 HTTP/MCP 进程打开 workspace。
+1. 正常停止服务，确认没有 知识库服务进程打开 workspace。
 2. 复制完整 `workspace_root`，包括 marker、`document/`、`state/`、WAL/SHM 和 `index/`。
 3. 校验完整性与权限。
 
@@ -330,7 +311,6 @@ SQLite 是业务状态权威，Lucene 可重建。维护清理使用 `POST /api/
 | workspace 被拒绝 | 使用空目录或带有效 marker 的当前格式目录 |
 | LLM 失败 | 检查 provider/URL/model/key；先用 `echo` 验证其他路径 |
 | code search/symbol 不可用 | 配置 ripgrep/Ctags 绝对路径；不会从 PATH 自动发现 |
-| MCP 协议损坏 | 确认 stdio 启动，stdout 无日志，查看 stderr |
 | 搜索落后 | 查看 projection freshness，必要时显式 rebuild |
 
 ## 12. 相关文档

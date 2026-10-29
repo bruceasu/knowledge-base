@@ -32,6 +32,19 @@ public class Request {
     //    protected Map<String, String>          params; // cached value
     protected HTTPServer.ContextInfo context; // cached value
     protected HTTPServer server;
+    private boolean rawBody;
+    private int bodyLimit = -1;
+
+    public void useRawBody() { rawBody = true; }
+    public void replaceBody(InputStream input) { body = Objects.requireNonNull(input); }
+    public void limitBody(int maximumBytes) {
+        if (maximumBytes < 0 || maximumBytes == Integer.MAX_VALUE) throw new IllegalArgumentException("invalid body limit");
+        bodyLimit = maximumBytes;
+    }
+
+    public static final class BodyTooLargeException extends IOException {
+        BodyTooLargeException() { super("request body exceeds limit"); }
+    }
 
     protected final List<Part> files = new ArrayList<>();
 
@@ -145,7 +158,7 @@ public class Request {
     public String getString() {
         String charset = headers.getParams(CONTENT_TYPE).get("charset");
         try {
-            return readToken(body, -1, charset == null ? "UTF-8" : charset, 8192);
+            return readToken(body, -1, charset == null ? "UTF-8" : charset, bodyLimit < 0 ? 8192 : bodyLimit);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -215,6 +228,12 @@ public class Request {
     }
 
     public void initBody() throws IOException {
+        if (rawBody) return;
+        if (bodyLimit >= 0) {
+            byte[] bytes = body.readNBytes(bodyLimit + 1);
+            if (bytes.length > bodyLimit) throw new BodyTooLargeException();
+            body = new ByteArrayInputStream(bytes);
+        }
         if (isForm()) {
             formDataParser.parseRequest(this);
         } else if (isMultipartFormData() && isMultipartFormDataSupported()) {
@@ -275,7 +294,7 @@ public class Request {
             body = new LimitedInputStream(in, len, true);
         }
         initRequestParam();
-        initBody();
+        if (server.getRequestGate() == null) initBody();
     }
 
     /**

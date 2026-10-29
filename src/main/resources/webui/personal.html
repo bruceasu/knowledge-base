@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>我的资料库</title><link rel="stylesheet" href="/webui/personal.css">
+  <script src="/webui/personal.js" defer></script>
+</head>
+<body>
+  <header><a class="brand" href="/webui/personal.html">我的资料库</a><nav><a href="/webui/manage.html">管理资料</a><a href="/webui/index.html">原有工具</a></nav></header>
+  <main>
+    <section class="intro"><span>收集 · 记录 · 留存</span><h1>资料留在这里，问题交给秘书。</h1><p>保存原文件和笔记，随时查看处理进度与来源。</p></section>
+    <p id="notice" class="notice" role="status" aria-live="polite"></p>
+    <section id="reader" class="card" hidden><div class="heading"><h2 id="readingTitle">阅读资料</h2><a id="download" download>下载原件</a></div><pre id="readingContent"></pre><button id="more" hidden>继续阅读</button></section>
+    <div class="columns">
+      <section class="card"><h2>上传资料</h2><p>每个文件最多 100 MB。可一次选择多个文件，逐个上传。OneNote HTML 请连同资源打包成 ZIP。</p><form id="uploadForm"><label for="files">选择文件</label><input id="files" type="file" multiple required><button id="uploadButton" type="submit">保存资料</button></form><p id="uploadStatus" role="status" aria-live="polite"></p></section>
+      <section class="card"><h2>新建笔记</h2><form id="noteForm"><label for="title">标题</label><input id="title" maxlength="200" required><label for="content">正文 · Markdown</label><textarea id="content" rows="8" required></textarea><label for="tags">标签，用逗号分隔</label><input id="tags"><button id="noteButton" type="submit">保存笔记</button></form><p id="noteStatus" role="status" aria-live="polite"></p></section>
+    </div>
+    <section class="card"><div class="heading"><h2>处理进度</h2><button id="refresh" class="secondary">刷新</button></div><ul id="imports" class="items"><li>正在读取…</li></ul></section>
+    <section class="card"><h2>最近资料</h2><ul id="recent" class="items"><li>正在读取…</li></ul></section>
+  </main><footer>原件保留 · 查询由你的秘书完成</footer>
+</body></html>

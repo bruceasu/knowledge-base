@@ -4,7 +4,7 @@
 TBD - created by archiving change engineering-knowledge-single-workspace-service. Update Purpose after archive.
 ## Requirements
 ### Requirement: Service owns exactly one workspace
-The system SHALL start with exactly one local workspace root supplied by `--workspace-root` or TOML `workspace_root` and SHALL own that workspace's SQLite, Lucene, ingestion, retrieval, context, HTTP, and MCP resources for the process lifetime. The new launcher MUST NOT use an implicit workspace default. Clients MUST NOT register, select, switch, or name a logical workspace.
+The system SHALL start with exactly one local workspace root supplied by `--workspace-root` or TOML `workspace_root` and SHALL own that workspace's SQLite, Lucene, ingestion, retrieval, context, HTTP resources for the process lifetime. The new launcher MUST NOT use an implicit workspace default. Clients MUST NOT register, select, switch, or name a logical workspace.
 
 #### Scenario: Start an empty service workspace
 - **WHEN** the operator starts the service with one valid empty workspace root
@@ -25,16 +25,12 @@ The service MUST create and validate `<workspace-root>/.engineering-knowledge-wo
 - **WHEN** the marker is malformed, names another format, contains additional fields, or has a version other than integer `1`
 - **THEN** startup fails before opening SQLite or Lucene and leaves the workspace unchanged
 
-### Requirement: One production application composition serves both transports
-The system SHALL compose the fresh-layout document module, projection ingestion, hybrid retrieval, controlled object read, evidence trace, Context Builder, and `KnowledgeAgentFacade` over one workspace-owned resource graph. The composition root MUST own one engineering Store, one retrieval runtime owning engineering Lucene, one application operation coordinator, and immutable bounded external-tool profiles. HTTP and MCP handlers MUST call application interfaces and MUST NOT construct or access persistence, index, process launcher, or external-tool adapters directly.
+### Requirement: One production application composition serves HTTP
+The system SHALL compose the fresh-layout document module, projection ingestion, hybrid retrieval, controlled object read, evidence trace, Context Builder, and `KnowledgeAgentFacade` over one workspace-owned resource graph. The composition root MUST own one engineering Store, one retrieval runtime owning engineering Lucene, one application operation coordinator, and immutable bounded external-tool profiles. HTTP handlers MUST call application interfaces and MUST NOT construct or access persistence, index, process launcher, or external-tool adapters directly.
 
-#### Scenario: HTTP and MCP observe the same committed state
-- **WHEN** content is successfully ingested through a supported application operation and then queried through HTTP and MCP
+#### Scenario: HTTP observe the same committed state
+- **WHEN** content is successfully ingested through a supported application operation and then queried through HTTP
 - **THEN** both transports read the same committed workspace state and preserve the same provenance and freshness semantics
-
-#### Scenario: Both transports are enabled
-- **WHEN** HTTP and MCP run in one service process
-- **THEN** they receive interfaces from the same composition-root instance and do not open duplicate Store, Lucene, document, or external-tool resource graphs
 
 ### Requirement: Production document operations use the fresh document subdirectory
 The system MUST provide a production `SingleWorkspaceDocumentApplication` that owns exactly one existing document-service instance opened under `<workspace-root>/document`. It MUST implement every declared document/session operation through typed application methods, MUST reject malformed or root-escaping arguments, and MUST NOT use `WorkspaceRegistry`, `WorkspaceContext`, legacy transport handlers, or a legacy root layout. A placeholder or close-only implementation MUST NOT satisfy application readiness.
@@ -48,15 +44,11 @@ The system MUST provide a production `SingleWorkspaceDocumentApplication` that o
 - **THEN** the adapter rejects it before the document service mutates state
 
 ### Requirement: Production launchers share validated composition inputs
-The HTTP and MCP production entry points MUST use one shared launcher factory to load canonical CLI/TOML configuration, construct the configured LLM client and immutable bounded external-tool profiles, and open `SingleWorkspaceKnowledgeService`. The packaged default executable MUST start the HTTP entry point; MCP MUST remain available through its explicit local stdio main class. CLI values SHALL override matching canonical TOML values, but any obsolete workspace key MUST remain fatal. External-tool executable paths MUST be explicit absolute paths; an unavailable optional tool MUST produce bounded unavailable diagnostics rather than an ambient `PATH` search. Transports MUST NOT duplicate these construction responsibilities or fall back to a legacy CLI/server.
+The HTTP production entry points MUST use one shared launcher factory to load canonical CLI/TOML configuration, construct the configured LLM client and immutable bounded external-tool profiles, and open `SingleWorkspaceKnowledgeService`. The packaged default executable MUST start the HTTP entry point. The former MCP entry is retired by FD-001. CLI values SHALL override matching canonical TOML values, but any obsolete workspace key MUST remain fatal. External-tool executable paths MUST be explicit absolute paths; an unavailable optional tool MUST produce bounded unavailable diagnostics rather than an ambient `PATH` search. Transports MUST NOT duplicate these construction responsibilities or fall back to a legacy CLI/server.
 
 #### Scenario: Start HTTP from the executable jar
 - **WHEN** the operator starts the packaged jar with valid canonical configuration
 - **THEN** it opens one ready single-workspace composition and serves `/api/v2` plus the bundled WebUI without exposing `/api/v1`
-
-#### Scenario: Start MCP from canonical configuration
-- **WHEN** the operator starts the explicit MCP main class with a valid workspace root, document LLM settings, and bounded tool profiles
-- **THEN** the shared launcher factory returns one ready production composition before MCP registers tools
 
 #### Scenario: Optional tool is not configured
 - **WHEN** a valid document-only service configuration omits an optional external tool
@@ -67,14 +59,14 @@ The retrieval package MUST provide an `AutoCloseable` runtime factory that owns 
 
 #### Scenario: Construct the production root
 - **WHEN** the composition root wires retrieval and context building
-- **THEN** it uses their public factories and neither HTTP nor MCP imports or constructs package-internal implementation types
+- **THEN** it uses their public factories and HTTP never imports or constructs package-internal implementation types
 
 ### Requirement: Readiness and shutdown cover the complete composition
 The service MUST expose `/api/v2/health` for process liveness and `/api/v2/ready` for composition readiness. Readiness MUST return HTTP 200 only after the workspace store, projection/index recovery, and required application composition are usable, and HTTP 503 otherwise. Its stable payload MUST always contain `schemaVersion`, `ready`, `state`, `components`, `queueDepth`, and `freshness`, MUST use only bounded operator-safe failure reasons, and MUST NOT disclose the absolute workspace root. Shutdown MUST reject new operations, terminate or bound accepted operations, and close transport and application resources in a deterministic order.
 
 #### Scenario: Store cannot open
 - **WHEN** SQLite initialization or compatible-layout validation fails
-- **THEN** readiness remains unavailable and neither HTTP nor MCP advertises usable knowledge operations
+- **THEN** readiness remains unavailable and HTTP never advertises usable knowledge operations
 
 #### Scenario: Shut down an accepting service
 - **WHEN** shutdown begins while bounded operations are accepted
@@ -99,25 +91,25 @@ The new launcher MUST reject legacy CLI keys `--workspace`, `--workspace-id`, `-
 - **THEN** validation fails before marker creation or mutable resource construction and identifies `--server-workspace` as obsolete
 
 ### Requirement: Service verification uses fresh temporary state
-End-to-end verification MUST start from a temporary empty new-format workspace and cover startup/readiness, one ingestion flow, retrieval, controlled read, context construction, UI asset loading, and all six MCP tools. Verification MUST NOT depend on legacy persisted fixtures.
+End-to-end verification MUST start from a temporary empty new-format workspace and cover startup/readiness, one ingestion flow, retrieval, controlled read, context construction, UI asset loading, and the secretary API. Verification MUST NOT depend on legacy persisted fixtures.
 
 #### Scenario: Complete service smoke flow
 - **WHEN** the authorized smoke suite runs against a temporary workspace
-- **THEN** it demonstrates usable HTTP, bundled UI, and MCP flows and leaves the repository's real workspace data untouched
+- **THEN** it demonstrates usable HTTP and bundled UI flows and leaves the repository's real workspace data untouched
 
 ### Requirement: Legacy runtime surfaces are absent
-The packaged product MUST use the single-workspace HTTP launcher as its default executable service entry and MUST retain local stdio MCP only through its explicit launcher. Production source, resources, configuration, and active documentation MUST NOT expose the legacy `/api/v1` application, logical workspace registration/selection, multi-workspace registry/context lifecycle, or an automatic fallback to legacy storage.
+The packaged product MUST use the single-workspace HTTP launcher as its default executable service entry and MUST NOT retain the retired MCP launcher. Production source, resources, configuration, and active documentation MUST NOT expose the legacy `/api/v1` application, logical workspace registration/selection, multi-workspace registry/context lifecycle, or an automatic fallback to legacy storage.
 
 #### Scenario: Start the packaged service
 - **WHEN** an operator starts the executable jar without selecting another main class
-- **THEN** the single-workspace HTTP service requires canonical `workspace_root` configuration and does not start the legacy CLI or `/api/v1` server
+- **THEN** the single-workspace HTTP service requires canonical `workspace_root` configuration and does not start the retired MCP launcher or legacy CLI or `/api/v1` server
 
 #### Scenario: Search active product surfaces
 - **WHEN** repository validation inspects non-archived production code, resources, examples, and configuration
 - **THEN** it finds no callable workspace registration/selection path or supported `/api/v1` route
 
 ### Requirement: Cleanup preserves production dependencies
-Legacy code MUST be removed only when static reachability and repository-reference evidence show that it is not required by the single-workspace HTTP, WebUI, stdio MCP, document application, engineering projection, retrieval, trace, or Context Builder paths. An unresolved candidate MUST remain present until its dependency Gate is resolved.
+Legacy code MUST be removed only when static reachability and repository-reference evidence show that it is not required by the single-workspace HTTP, WebUI, document application, engineering projection, retrieval, trace, or Context Builder paths. An unresolved candidate MUST remain present until its dependency Gate is resolved.
 
 #### Scenario: Candidate has a shared caller
 - **WHEN** a deletion candidate is referenced by a retained production root or implements behavior used by `KnowledgeBaseDocumentApplication`

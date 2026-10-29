@@ -2,7 +2,7 @@
 
 [English](README.md)
 
-`knowledge-base` 是本地单工作区工程知识服务，提供文档摄取、SQLite 知识投影、Lucene BM25 检索、证据追踪、上下文构建、内置 WebUI 和六个只读 stdio MCP 工具。
+`knowledge-base` 是用户自行掌控的个人知识库，采用单工作区并保留工程知识检索能力，提供文档摄取、SQLite 知识投影、Lucene BM25 检索、证据追踪、上下文构建、内置 WebUI 和个人秘书 HTTP API。
 
 ## 快速开始
 
@@ -51,26 +51,20 @@ curl -G http://127.0.0.1:8080/api/v2/knowledge/search \
   --data-urlencode 'limit=10'
 ```
 
-完整步骤、Linux/Windows 部署、配置、API、MCP、备份升级与排障见 [用户与部署手册](docs/user-guide.zh.md)。
+完整步骤、Linux/Windows 部署、配置、API、个人资料收集、备份升级与排障见 [用户与部署手册](docs/user-guide.zh.md)。
 
 ## 核心约束
 
 - 一个进程只拥有一个 `workspace_root`，同一目录不能被多个进程同时打开。
 - API 只提供 `/api/v2`；旧 `/api/v1`、逻辑 workspace 路由和旧 CLI 已移除。
 - WebUI 随 jar 打包，不需要独立前端部署。
-- MCP 只支持本地 stdio，不监听网络端口。
+- MCP 已退役，秘书通过认证的 HTTP 契约接入。
 - HTTP 没有内建认证或 TLS，不要直接暴露到不可信网络。
 - SQLite、WAL/SHM 和 Lucene 索引应保存在主机本地文件系统。
 
-## 本地 stdio MCP
+## 秘书接入与个人资料收集
 
-```bash
-java -cp target/knowledge-base-1.0.0-SNAPSHOT.jar \
-  me.asu.kb.mcp.KnowledgeMcpServerMain \
-  --config config.toml
-```
-
-工具：`knowledge_search`、`knowledge_get`、`code_symbol`、`code_search`、`trace`、`build_context`。
+MCP 入口已退役。秘书使用 HTTP API 1.0；参见 [接入契约](docs/handoffs/personal-secretary-knowledge-handoff.md)。个人资料模式提供上传、笔记、处理进度与受保护阅读，部署方式见 deploy/personal/。
 
 ## 文档
 

@@ -283,7 +283,9 @@ function addMessage(session, message) {
 }
 
 async function requestJson(url, options = {}) {
-  const response = await fetch(url, options);
+  const requestHeaders = new Headers(options.headers || {});
+  if (!["GET", "HEAD", "OPTIONS"].includes((options.method || "GET").toUpperCase())) requestHeaders.set("X-KB-CSRF", "1");
+  const response = await fetch(url, { ...options, headers: requestHeaders });
   const body = await response.text();
   let json = {};
   if (body) {

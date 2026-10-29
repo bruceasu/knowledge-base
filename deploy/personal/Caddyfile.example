@@ -1,0 +1,51 @@
+# Same-host native deployment; backend and Authelia listen on loopback only.
+# Required environment: KB_DOMAIN, AUTH_DOMAIN, KB_PROXY_SECRET.
+# KB_PROXY_SECRET must match trusted_proxy_secret_file (43+ random base64url chars).
+{$KB_DOMAIN} {
+    @secretaryRead {
+        method GET
+        path_regexp secretaryRead ^/api/v2/secretary/(capabilities|documents/[A-Za-z0-9_-]+|note-creations/[A-Za-z0-9_-]+)$
+    }
+    @secretaryWrite {
+        method POST
+        path /api/v2/secretary/search /api/v2/secretary/notes
+    }
+    handle @secretaryRead {
+        reverse_proxy 127.0.0.1:8080 {
+            header_up -Remote-User
+            header_up -Remote-Groups
+            header_up -Remote-Email
+            header_up -Remote-Name
+            header_up -X-KB-Proxy-Secret
+        }
+    }
+    handle @secretaryWrite {
+        reverse_proxy 127.0.0.1:8080 {
+            header_up -Remote-User
+            header_up -Remote-Groups
+            header_up -Remote-Email
+            header_up -Remote-Name
+            header_up -X-KB-Proxy-Secret
+        }
+    }
+    handle {
+        route {
+            request_header -Remote-User
+            request_header -Remote-Groups
+            request_header -Remote-Email
+            request_header -Remote-Name
+            request_header -X-KB-Proxy-Secret
+            forward_auth 127.0.0.1:9091 {
+                uri /api/authz/forward-auth
+                copy_headers Remote-User Remote-Groups Remote-Email Remote-Name
+            }
+            reverse_proxy 127.0.0.1:8080 {
+                header_up X-KB-Proxy-Secret {$KB_PROXY_SECRET}
+            }
+        }
+    }
+}
+
+{$AUTH_DOMAIN} {
+    reverse_proxy 127.0.0.1:9091
+}
