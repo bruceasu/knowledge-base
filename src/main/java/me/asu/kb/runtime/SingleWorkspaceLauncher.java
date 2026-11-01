@@ -8,6 +8,7 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import me.asu.kb.adapter.codesearch.RipgrepCodeSearchAdapter;
@@ -27,8 +28,17 @@ public final class SingleWorkspaceLauncher {
 
   public static Configuration load(String[] arguments) throws IOException {
     String[] args = arguments == null ? new String[0] : arguments.clone();
-    Path configFile = configFile(args);
-    Map<String, Object> toml = configFile == null ? new LinkedHashMap<>() : readToml(configFile);
+    Map<String, String> fileEnvironment = loadEnvironmentFile();
+    Map<String, String> systemEnvironment = System.getenv();
+    Map<String, String> environment = new LinkedHashMap<>(fileEnvironment);
+    environment.putAll(systemEnvironment);
+    Path configFile = configFile(args, environment);
+    Map<String, Object> toml =
+        configFile == null ? new LinkedHashMap<>() : readToml(configFile, environment);
+    normalizeTomlAliases(toml);
+    // Apply each source separately so system variables win even when aliases map to one key.
+    overlayEnvironment(toml, fileEnvironment);
+    overlayEnvironment(toml, systemEnvironment);
     if (hasCanonicalCliRoot(args)) {
       toml.remove(SingleWorkspaceServiceConfig.TOML_WORKSPACE_ROOT);
     }
@@ -70,7 +80,7 @@ public final class SingleWorkspaceLauncher {
     }
   }
 
-  private static Path configFile(String[] args) {
+  private static Path configFile(String[] args, Map<String, String> environment) {
     Path selected = null;
     for (int index = 0; index < args.length; index++) {
       String argument = args[index];
@@ -85,10 +95,94 @@ public final class SingleWorkspaceLauncher {
         selected = Path.of(argument.substring((CONFIG + "=").length())).toAbsolutePath().normalize();
       }
     }
+    if (selected == null) {
+      String configuredPath = environment.get("KB_CONFIG");
+      if (configuredPath != null && !configuredPath.isBlank()) {
+        selected = Path.of(configuredPath).toAbsolutePath().normalize();
+      }
+    }
+    if (selected == null) {
+      Path automatic =
+          Path.of(System.getProperty("user.home"), ".config", "knowledge", "config.toml");
+      if (Files.isRegularFile(automatic)) selected = automatic;
+    }
     if (selected != null && !Files.isRegularFile(selected)) {
       throw new IllegalArgumentException("configuration file does not exist: " + selected);
     }
     return selected;
+  }
+
+  private static Map<String, String> loadEnvironmentFile() throws IOException {
+    Path environmentFile =
+        Path.of(System.getProperty("user.home"), ".config", "knowledge", "env");
+    return Files.isRegularFile(environmentFile)
+        ? readEnvironmentFile(environmentFile)
+        : new LinkedHashMap<>();
+  }
+
+  private static Map<String, String> readEnvironmentFile(Path file) throws IOException {
+    Map<String, String> values = new LinkedHashMap<>();
+    int lineNumber = 0;
+    for (String raw : Files.readAllLines(file, StandardCharsets.UTF_8)) {
+      lineNumber++;
+      String line = raw.trim();
+      if (line.isEmpty() || line.startsWith("#")) continue;
+      if (line.startsWith("export ")) line = line.substring("export ".length()).trim();
+      int separator = line.indexOf('=');
+      if (separator <= 0) {
+        throw new IllegalArgumentException("invalid environment assignment at line " + lineNumber + " in " + file);
+      }
+      String name = line.substring(0, separator).trim();
+      if (!name.matches("[A-Za-z_][A-Za-z0-9_]*")) {
+        throw new IllegalArgumentException("invalid environment variable name at line " + lineNumber + " in " + file);
+      }
+      String value = environmentValue(line.substring(separator + 1).trim());
+      values.put(name, value);
+    }
+    return values;
+  }
+
+  private static String environmentValue(String raw) {
+    if (raw.startsWith("\"") || raw.startsWith("'")) {
+      char quote = raw.charAt(0);
+      int end = raw.indexOf(quote, 1);
+      String suffix = end < 0 ? "" : raw.substring(end + 1).trim();
+      if (end < 0 || (!suffix.isEmpty() && !suffix.startsWith("#"))) {
+        throw new IllegalArgumentException("invalid quoted value in environment file");
+      }
+      return raw.substring(1, end);
+    }
+    int comment = raw.indexOf(" #");
+    return (comment >= 0 ? raw.substring(0, comment) : raw).trim();
+  }
+
+  private static void overlayEnvironment(
+      Map<String, Object> values, Map<String, String> environment) {
+    environment.forEach(
+        (name, value) -> {
+          String key = null;
+          if (name.startsWith("KB_") && !"KB_CONFIG".equals(name)) {
+            key = name.substring("KB_".length()).toLowerCase(Locale.ROOT);
+          } else if ("OPENAI_API_KEY".equals(name)) {
+            key = "openai_api_key";
+          } else if ("GEMINI_API_KEY".equals(name)) {
+            key = "gemini_api_key";
+          } else if ("GROQ_API_KEY".equals(name)) {
+            key = "groq_api_key";
+          }
+          if (key != null && !key.isBlank()) values.put(canonicalConfigKey(key), value);
+        });
+  }
+
+  private static void normalizeTomlAliases(Map<String, Object> values) {
+    if (values.containsKey("llm")) {
+      // Preserve the historical alias precedence when both provider keys are in TOML.
+      values.put("llm_provider", values.remove("llm"));
+    }
+  }
+
+  private static String canonicalConfigKey(String key) {
+    return "llm".equals(key) ? "llm_provider" : key;
   }
 
   private static boolean hasCanonicalCliRoot(String[] args) {
@@ -102,7 +196,8 @@ public final class SingleWorkspaceLauncher {
     return false;
   }
 
-  private static Map<String, Object> readToml(Path file) throws IOException {
+  private static Map<String, Object> readToml(
+      Path file, Map<String, String> environment) throws IOException {
     Map<String, Object> values = new LinkedHashMap<>();
     Path base = file.getParent();
     int lineNumber = 0;
@@ -116,7 +211,7 @@ public final class SingleWorkspaceLauncher {
       int separator = line.indexOf('=');
       if (separator <= 0) throw new IllegalArgumentException("invalid TOML assignment at line " + lineNumber);
       String key = line.substring(0, separator).trim();
-      String value = expandEnvironment(unquote(line.substring(separator + 1).trim()));
+      String value = expandEnvironment(unquote(line.substring(separator + 1).trim()), environment);
       if (values.putIfAbsent(key, value) != null) {
         throw new IllegalArgumentException("duplicate TOML key: " + key);
       }
@@ -149,7 +244,7 @@ public final class SingleWorkspaceLauncher {
     return value;
   }
 
-  private static String expandEnvironment(String value) {
+  private static String expandEnvironment(String value, Map<String, String> environment) {
     StringBuilder result = new StringBuilder();
     int cursor = 0;
     while (cursor < value.length()) {
@@ -159,7 +254,7 @@ public final class SingleWorkspaceLauncher {
       int end = value.indexOf('}', start + 2);
       if (end < 0) throw new IllegalArgumentException("unterminated environment reference");
       String name = value.substring(start + 2, end);
-      String replacement = System.getenv(name);
+      String replacement = environment.get(name);
       if (replacement == null) throw new IllegalArgumentException("environment variable is not defined: " + name);
       result.append(replacement);
       cursor = end + 1;
@@ -181,10 +276,10 @@ public final class SingleWorkspaceLauncher {
       String value;
       int equals = argument.indexOf('=');
       if (equals > 2) {
-        key = argument.substring(2, equals).replace('-', '_');
+        key = canonicalConfigKey(argument.substring(2, equals).replace('-', '_'));
         value = argument.substring(equals + 1);
       } else {
-        key = argument.substring(2).replace('-', '_');
+        key = canonicalConfigKey(argument.substring(2).replace('-', '_'));
         if ("config".equals(key)) { index++; continue; }
         if (index + 1 >= args.length || args[index + 1] == null || args[index + 1].startsWith("--")) {
           throw new IllegalArgumentException("missing value for --" + key.replace('_', '-'));
@@ -196,7 +291,7 @@ public final class SingleWorkspaceLauncher {
   }
 
   private static LlmProviderSettings llmConfiguration(Map<String, String> values) {
-    String provider = configured(values, "llm", configured(values, "llm_provider", "ollama"));
+    String provider = configured(values, "llm_provider", "ollama");
     return new RuntimeLlmSettings(
         provider,
         configured(values, "model", "qwen3:4b"),

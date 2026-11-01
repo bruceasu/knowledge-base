@@ -3,6 +3,24 @@
 ## Purpose
 TBD - created by archiving change refactor-to-webservice-base. Update Purpose after archive.
 ## Requirements
+
+### Requirement: Configuration sources have deterministic precedence
+The service MUST load `~/.config/knowledge/env` when present and MUST let process environment values override values from that file. It MUST automatically load `~/.config/knowledge/config.toml` when no explicit configuration path is selected. An explicit `--config` path MUST take precedence over `KB_CONFIG`, which MUST take precedence over the automatic path.
+
+Configuration values MUST be resolved in this order: CLI arguments, process environment, the loaded env file, TOML values, then application defaults. `KB_` followed by the uppercase configuration key MUST map to that configuration key. The service MUST support `${ENV_NAME}` expansion in TOML using process environment values before env-file values and MUST fail clearly when a referenced variable is undefined.
+
+#### Scenario: Automatic home configuration is available
+- **WHEN** the user starts the service without `--config` or `KB_CONFIG` and the default home configuration exists
+- **THEN** the launcher reads `~/.config/knowledge/config.toml` and applies environment and CLI overrides according to the defined precedence
+
+#### Scenario: Process environment overrides TOML and env-file values
+- **WHEN** the same setting is supplied by TOML, `~/.config/knowledge/env`, and the process environment
+- **THEN** the process environment value is used, unless a CLI argument supplies that setting
+
+#### Scenario: TOML expands an environment variable
+- **WHEN** a TOML value contains `${ENV_NAME}` and the variable is present in process environment or the loaded env file
+- **THEN** the process value is used when both sources define the variable; otherwise the env-file value is used
+
 ### Requirement: Server owns workspace resources
 The system MUST provide one server process that owns exactly one workspace context. That context MUST own its mutable SQLite and Lucene resources and MUST be identified by the configured normalized root only within trusted status/configuration output; clients MUST NOT select it through a logical workspace ID.
 

@@ -35,6 +35,28 @@ mvn clean package
 
 产物是 `target/knowledge-base-1.0.0-SNAPSHOT.jar`，默认入口为 `me.asu.kb.http.SingleWorkspaceHttpServerMain`。
 
+仓库提供便捷脚本：`scripts/start-maven.sh`（PowerShell 使用 `scripts/start-maven.ps1`）通过 Maven 编译并直接启动应用入口；程序自动读取 `~/.config/knowledge/config.toml`，也可通过 `KB_CONFIG` 选择其他文件。发布后可用 `scripts/start-jar.sh` 或 `scripts/start-jar.ps1` 直接运行 Jar，并通过 `--config` 指定配置文件。
+
+```bash
+bash scripts/start-maven.sh
+KB_CONFIG=config-dev.toml bash scripts/start-maven.sh
+bash scripts/start-jar.sh --config config.toml
+```
+
+发行包生成到 `target/distributions/`：
+
+- `scripts/package-with-jre.sh` / `scripts/package-with-jre.ps1`：生成包含可执行 Jar、精简 JRE、启动脚本、配置示例和文档的 ZIP。需要 JDK 17+（含 `jdeps`、`jlink`）；运行时与打包主机的操作系统和 CPU 架构匹配。
+- `scripts/package-without-jre.sh` / `scripts/package-without-jre.ps1`：生成相同内容但不附带 JRE 的 ZIP；目标机器需安装 Java 17+。
+
+Windows PowerShell 示例：
+
+```powershell
+$env:KB_CONFIG = ".\config.toml"
+.\scripts\start-maven.ps1
+.\scripts\package-with-jre.ps1
+.\scripts\package-without-jre.ps1
+```
+
 ### 配置
 
 Linux/macOS：
@@ -48,6 +70,16 @@ PowerShell：
 ```powershell
 Copy-Item config-example.toml config.toml
 ```
+
+需要使用自动发现配置时，把配置放到用户目录：
+
+```bash
+mkdir -p ~/.config/knowledge
+cp config-example.toml ~/.config/knowledge/config.toml
+cp env.example ~/.config/knowledge/env
+```
+
+`config-example.toml` 中的 workspace 路径相对配置文件解析，请按实际数据目录修改。也可以继续使用项目目录中的 `config.toml` 并通过 `--config config.toml` 显式指定。
 
 最小配置：
 
@@ -93,7 +125,9 @@ curl -G http://127.0.0.1:8080/api/v2/knowledge/search \
 
 ## 4. 配置参考
 
-配置文件是平面 TOML，不支持 `[section]`。支持 `${ENV_NAME}` 展开，但服务不会自动加载 `.env` 或 `env.example`；请先由进程环境提供变量。相对 `workspace_root` 按 TOML 文件所在目录解析，命令行 `--workspace-root` 则按启动进程的当前目录解析。CLI 使用 `--kebab-case`，TOML 使用 `snake_case`；CLI 覆盖同名 TOML，`--config` 只能出现一次。
+配置文件是平面 TOML，不支持 `[section]`。若未提供 `--config` 或 `KB_CONFIG`，程序自动读取 `~/.config/knowledge/config.toml`（不存在时继续使用环境变量和程序默认值）。程序同时读取 `~/.config/knowledge/env`，支持 `KEY=VALUE`、`export KEY=VALUE` 和注释，不会执行 shell 命令。
+
+配置优先级从高到低为：CLI 参数 > 系统环境变量 > `~/.config/knowledge/env` > TOML > 程序默认值。配置项环境变量使用 `KB_` 加大写配置键，例如 `KB_PORT`、`KB_WORKSPACE_ROOT`、`KB_LLM_PROVIDER`；`OPENAI_API_KEY`、`GEMINI_API_KEY` 和 `GROQ_API_KEY` 也可直接设置对应密钥。TOML 值支持 `${ENV_NAME}` 展开，优先读取系统环境变量，再读取 `env` 文件中的变量；引用的变量未定义时启动失败。相对 TOML 中的 `workspace_root` 按配置文件所在目录解析；环境变量或 CLI 提供的相对路径按启动进程当前目录解析。CLI 使用 `--kebab-case`，TOML 使用 `snake_case`；`--config` 只能出现一次。
 
 | TOML / CLI | 默认值 | 说明 |
 | --- | --- | --- |
@@ -113,7 +147,7 @@ curl -G http://127.0.0.1:8080/api/v2/knowledge/search \
 
 外部工具也可使用对应的 CLI 形式 `--ripgrep-executable`、`--ctags-executable` 和 `--git-executable`；启用时必须提供绝对路径，服务不会从 `PATH` 自动发现。
 
-密钥建议使用环境变量，不要提交实际密钥配置：
+密钥建议通过 `~/.config/knowledge/env` 或系统环境变量提供，不要提交实际密钥。也可在 TOML 中展开：
 
 ```toml
 openai_api_key = "${OPENAI_API_KEY}"
@@ -167,7 +201,25 @@ HTTP 没有内建认证或 TLS，也没有独立 bind-host 配置。不要直接
 
 ## 7. WebUI 与 HTTP API
 
-使用页支持搜索、知识对象、问答、文档和 session；管理页支持状态、导入、索引重建、根目录管理、文档浏览以及虚拟项目的资源/同步状态查看。UI 固定使用 service workspace，没有 workspace 选择器。请求执行中会锁定对应操作，失败、部分结果和 freshness/provenance 会在结果区域或活动区显示。
+使用页支持检索、基于检索证据的问答、知识对象查看和 session；管理页支持服务状态、内容导入、索引重建、根目录管理、文档元数据以及虚拟项目的资源和同步状态。界面始终连接当前服务实例的唯一 workspace，没有 workspace 选择器。
+
+### 使用页操作
+
+1. 在“检索”模式输入关键词并开始检索；结果卡片显示标题、摘要、来源位置、scope、freshness 和证据数量（服务有返回时）。
+2. 切换到“问答”模式提出问题。回答会附带检索来源；可从同一页面继续提问并查看当前 session 的活动记录。
+3. 结果为空时调整关键词或问题；出现错误时先查看活动记录中的安全诊断，再使用页面提供的重试/刷新操作。请求进行中对应按钮会暂时禁用，避免重复提交。
+4. 如果结果标记为不完整、部分可用或 freshness 不可用，应把它当作受限结果；到管理页检查服务状态和索引同步情况后再重试。
+
+来源路径、行号、scope 或 freshness 未由服务提供时，页面会显示不可用状态，不代表来源不存在或内容一定是最新的。切换 session 后，回答来源会跟随当前 session 更新。
+
+### 管理页操作
+
+- “刷新全部状态”重新读取服务状态；“刷新文档”用于重新载入文档列表和元数据。
+- 同步目录用于增量摄取指定的服务端本地目录；重建索引用于从已有业务数据重新生成检索投影，通常只在恢复或修复时使用。
+- 根目录的“解除关联”保留历史数据；“清理”会删除关联数据并要求再次确认。执行前核对目录和操作提示。
+- 在“虚拟项目”区域选择项目后，可查看其资源引用、索引状态和最近同步结果，并显式触发同步。同步失败或部分完成时，先刷新项目状态并阅读诊断，再决定是否重试。
+
+虚拟项目资源是本机路径引用；添加或移除引用不会复制、移动或删除源文件。路径策略会拒绝当前服务未获准访问的路径。WebUI 不提供虚拟项目源文件写入/删除入口；文件 API 的边界见下文虚拟项目章节。
 
 所有路由以 `/api/v2` 开头：
 
@@ -270,7 +322,9 @@ MCP 入口已退役。秘书使用 HTTP API 1.0；参见 [接入契约](handoffs
 - readiness：`GET /api/v2/ready`
 - 详细状态：`GET /api/v2/status`
 
-readiness 失败时检查 `state`、`components`、`queueDepth` 和 `freshness`。
+建议按以下顺序检查：先确认 health 可访问，再确认 ready 返回 200；ready 返回 503 时读取 status，查看总体 `state`、`components`、`queueDepth` 和各索引的 `freshness`/诊断。health 成功只表示进程仍在运行，不代表存储、索引或外部模型均可用。
+
+虚拟项目同步可在管理页选中项目并执行，也可调用 `POST /api/v2/virtual-projects/{projectId}/sync`，随后查询 `/status`。项目同步只更新该项目的派生索引；`POST /api/v2/index/rebuild` 重建共享检索投影，二者用途不同。只在共享索引需要修复/重建时使用全局 rebuild。
 
 重建索引：
 
@@ -285,7 +339,7 @@ SQLite 是业务状态权威，Lucene 可重建。维护清理使用 `POST /api/
 
 ### 备份
 
-1. 正常停止服务，确认没有 知识库服务进程打开 workspace。
+1. 正常停止服务，确认没有 knowledge-base 服务进程打开 workspace。
 2. 复制完整 `workspace_root`，包括 marker、`document/`、`state/`、WAL/SHM 和 `index/`。
 3. 校验完整性与权限。
 

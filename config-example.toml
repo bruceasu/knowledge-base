@@ -1,44 +1,56 @@
-# Required. Relative paths are resolved from this TOML file.
+# Copy to ~/.config/knowledge/config.toml for automatic loading, or pass with --config.
+# Relative paths are resolved from this TOML file.
+# The service requires exactly one workspace root; this example chooses a local folder.
 workspace_root = "./service-workspace"
 
-# HTTP listener port. The default is 8080.
+# HTTP listener. Defaults to 8080.
 port = 8080
 
-# Personal collection UI and secretary API; HTTPS is terminated by same-host Caddy.
+# LLM provider defaults to ollama. Supported providers include ollama, openai,
+# gemini, groq, and echo (useful for local smoke checks without model answers).
+llm_provider = "ollama"
+# Legacy alias, if used, takes precedence over llm_provider:
+# llm = "ollama"
+model = "qwen3:4b"
+ollama_url = "http://localhost:11434/api/generate"
+
+# OpenAI-compatible provider settings.
+openai_url = "https://api.openai.com/v1/chat/completions"
+openai_model = "gpt-4o-mini"
+openai_api_key = ""
+
+# Gemini provider settings.
+gemini_url = "https://generativelanguage.googleapis.com/v1beta"
+gemini_model = "gemini-2.0-flash"
+gemini_api_key = ""
+
+# Groq provider settings.
+groq_url = "https://api.groq.com/openai/v1/chat/completions"
+groq_model = "llama-3.1-8b-instant"
+groq_api_key = ""
+
+# Optional external tools. Empty means unavailable; configured paths must be absolute.
+ripgrep_executable = ""
+ctags_executable = ""
+git_executable = ""
+
+# Optional scheduled virtual-project sync. Empty disables the scheduler.
+# Supported interval: PT1M through P1D. Concurrency defaults to 4 (range 1–32).
+virtual_project_sync_interval = ""
+virtual_project_sync_concurrency = 4
+
+# Personal collection mode is disabled by default and binds only to loopback.
 http_bind_host = "127.0.0.1"
 personal_knowledge_enabled = "false"
-# Enable only with the real proxy and credential configuration (deploy/personal/).
-# public_base_url = "https://knowledge.example.com"
-# secretary_credentials_file = "C:/private/knowledge/credentials.json"
-# trusted_proxy_secret_file = "C:/private/knowledge/proxy-secret.txt"
-personal_storage_quota_bytes = "0"
+public_base_url = ""
+secretary_credentials_file = ""
+trusted_proxy_secret_file = ""
+personal_storage_quota_bytes = 0
 
-# Use "echo" for deployment smoke checks; configure a real provider for model answers.
-llm_provider = "echo"
-ollama_url = "http://localhost:11434/api/generate"
-model = "qwen3:4b"
-
-# API keys may use environment expansion, for example:
+# Environment overrides use KB_ + the uppercase TOML key, for example KB_PORT=9090.
+# OPENAI_API_KEY, GEMINI_API_KEY, and GROQ_API_KEY also override their matching keys.
+# TOML values may expand environment variables. The referenced name must be defined:
 # openai_api_key = "${OPENAI_API_KEY}"
-
-# Optional external tools. Values must be absolute paths when enabled.
-# ripgrep_executable = "C:/tools/rg.exe"
-# ctags_executable = "C:/tools/ctags.exe"
-# git_executable = "C:/Program Files/Git/bin/git.exe"
-
-# Optional virtual-project synchronization. The interval is a fixed delay from
-# one completed scheduled cycle to the next and must be between PT1M and P1D.
-# CLI equivalents: --virtual-project-sync-interval and
-# --virtual-project-sync-concurrency.
-# virtual_project_sync_interval = "PT1H"
-# virtual_project_sync_concurrency = "2"
-
-# Virtual-project path policy is workspace-only in this release:
-# - paths below workspace_root are eligible by default;
-# - external paths are denied unless a future policy configuration enables them;
-# - canonical-path checks and forbid precedence remain enforced at runtime.
-# Path-policy configuration is a startup snapshot; restart the service after
-# changing supported configuration.
-
-# The launcher does not load .env files. Environment expansion is supported in
-# TOML values, for example: openai_api_key = "${OPENAI_API_KEY}".
+#
+# Configuration precedence: CLI > system environment > ~/.config/knowledge/env
+# > TOML > program defaults. See env.example for the env-file format.
